@@ -1,9 +1,14 @@
 #! /usr/bin/env python
 # -*- encoding: UTF8 -*-
 
-# Dieser TCP-Client baut einen Kontakt zum Koukaam NET-IO 230A auf.
-# Ziel ist die Steuerung der Angeschlossenen Netzgeräte.
-# Die Verbindung läuft über RAW-TCP-Packages
+# Philipp Klaus, philipp.l.klaus AT web.de
+# The code is published under the terms of the GPL v.3
+
+# This class represents the multiple plug hardware Koukaam NET-IO 230A
+# It can be configured using raw TCP communication.
+# The class aimes at providing complete coverage of the functionality of the box
+#  but not every action is supported yet.
+
 
 # for the raw TCP socket connection:
 from socket import *
@@ -13,12 +18,6 @@ import hashlib
 import re
 ## for debugging (set debug mark with pdb.set_trace() )
 import pdb
-
-
-
-host = "192.168.1.2"
-pw = "your choosen password"
-
 
 
 class netio230a(object):
@@ -64,17 +63,4 @@ class netio230a(object):
     def disconnect(self):
         # Socket schließen
         self.__s.close()
-
-def main():
-    netio = netio230a(host, "admin", pw, True)
-    netio.connect()
-    portList = netio.portList()
-    netio.disconnect()
-    
-    # response anzeigen
-    print "Port List: %s" % (portList),
-    
-
-if __name__ == '__main__':
-    main()
 
