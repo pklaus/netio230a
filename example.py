@@ -34,14 +34,29 @@ pw = "your choosen password"
 
 def main():
     netio = netio230a.netio230a(host, "admin", pw, True)
-    netio.connect()
-    portList = netio.portList()
-    netio.disconnect()
+    netio.login()
+    portList = netio.getPortStatus()
+    version = netio.getFirmwareVersion()
+    swDelayBefore = netio.getSwitchDelay()
+    netio.setSwitchDelay(1.5)
+    swDelayAfter = netio.getSwitchDelay()
+    deviceAlias = netio.getDeviceAlias()
+    watchdogSettings1 = netio.getWatchdogSettings(1)
+    networkSettings = netio.getNetworkSettings()
+    netio.logout()
     
     # response anzeigen
     print "Port List: %s" % (portList),
+    print "Firmware Version: %s" % (version),
+    print "switch delay before: %s" % (swDelayBefore),
+    print "switch delay after: %s" % (swDelayAfter),
+    print "device alias: %s" % (deviceAlias),
+    print "watchdog settings for port 1: %s" % (watchdogSettings1),
+    print "network settings: %s" % (networkSettings),
+
     
 
 if __name__ == '__main__':
     main()
+
 
