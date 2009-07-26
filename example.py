@@ -37,19 +37,23 @@ def main():
     netio.login()
     portList = netio.getPortStatus()
     version = netio.getFirmwareVersion()
-    swDelayBefore = netio.getSwitchDelay()
-    netio.setSwitchDelay(1.5)
-    swDelayAfter = netio.getSwitchDelay()
+    #swDelayBefore = netio.getSwitchDelay()
+    #netio.setSwitchDelay(1.5)
+    #swDelayAfter = netio.getSwitchDelay()
+    swDelay = netio.getSwitchDelay()
+    allPorts = netio.getAllPorts()
     deviceAlias = netio.getDeviceAlias()
     watchdogSettings1 = netio.getWatchdogSettings(1)
     networkSettings = netio.getNetworkSettings()
-    netio.logout()
+    netio = None
     
-    # response anzeigen
-    print "Port List: %s" % (portList),
+    # print response
+    print "Ports:  port 1 %s, port2 %s, port 3 %s, port 4 %s" % (allPorts.getPort1().getPortSwitchedOn(),allPorts.getPort2().getPortSwitchedOn(),allPorts.getPort3().getPortSwitchedOn(),allPorts.getPort4().getPortSwitchedOn())
+    print "Ports:  port 1 %s, port2 %s, port 3 %s, port 4 %s" % (portList[0],portList[1],portList[2],portList[3])
     print "Firmware Version: %s" % (version),
-    print "switch delay before: %s" % (swDelayBefore),
-    print "switch delay after: %s" % (swDelayAfter),
+    #print "switch delay before: %s" % (swDelayBefore),
+    #print "switch delay after: %s" % (swDelayAfter),
+    print "switch delay: %s" % (swDelay),
     print "device alias: %s" % (deviceAlias),
     print "watchdog settings for port 1: %s" % (watchdogSettings1),
     print "network settings: %s" % (networkSettings),
