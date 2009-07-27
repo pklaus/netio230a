@@ -36,21 +36,28 @@ pw = "your choosen password"
 
 def main():
     netio = netio230a.netio230a(host, "admin", pw, True)
-    netio.login()
+    try:
+        netio.login()
+    except StandardError:
+        print("could not connect")
+        sys.exit(1)
     portList = netio.getPortStatus()
     version = netio.getFirmwareVersion()
     #swDelayBefore = netio.getSwitchDelay()
     #netio.setSwitchDelay(1.5)
     #swDelayAfter = netio.getSwitchDelay()
     swDelay = netio.getSwitchDelay()
-    allPorts = netio.getAllPorts()
+    port1 = netio.getPort(0)
+    port2 = netio.getPort(1)
+    port3 = netio.getPort(2)
+    port4 = netio.getPort(3)
     deviceAlias = netio.getDeviceAlias()
     watchdogSettings1 = netio.getWatchdogSettings(1)
     networkSettings = netio.getNetworkSettings()
     netio = None
     
     # print response
-    print "Ports:  port 1 %s, port2 %s, port 3 %s, port 4 %s" % (allPorts.getPort1().getPortSwitchedOn(),allPorts.getPort2().getPortSwitchedOn(),allPorts.getPort3().getPortSwitchedOn(),allPorts.getPort4().getPortSwitchedOn())
+    print "Ports:  port 1 %s, port2 %s, port 3 %s, port 4 %s" % (port1.getPortSwitchedOn(),port2.getPortSwitchedOn(),port3.getPortSwitchedOn(),port4.getPortSwitchedOn())
     print "Ports:  port 1 %s, port2 %s, port 3 %s, port 4 %s" % (portList[0],portList[1],portList[2],portList[3])
     print "Firmware Version: %s" % (version),
     #print "switch delay before: %s" % (swDelayBefore),
