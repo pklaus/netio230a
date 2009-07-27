@@ -35,9 +35,8 @@ host = "192.168.1.2"
 pw = "your choosen password"
 
 def main():
-    netio = netio230a.netio230a(host, "admin", pw, True)
     try:
-        netio.login()
+        netio = netio230a.netio230a(host, "admin", pw, True)
     except StandardError:
         print("could not connect")
         sys.exit(1)
@@ -52,7 +51,8 @@ def main():
     
     # print response
     print "\n--------- successfully queried the Koukaam NETIO 230A ---------"
-    print "power status:  port 1: %s, port 2: %s, port 3: %s, port 4: %s" % (ports[0].getPortSwitchedOn(),ports[1].getPortSwitchedOn(),ports[2].getPortSwitchedOn(),ports[3].getPortSwitchedOn())
+    print "power status:  port 1: %s, port 2: %s, port 3: %s, port 4: %s" % (ports[0].getPowerOn(),ports[1].getPowerOn(),ports[2].getPowerOn(),ports[3].getPowerOn())
+    print "power on after power loss:  port 1: %s, port 2: %s, port 3: %s, port 4: %s" % (ports[0].getPowerOnAfterPowerLoss(),ports[1].getPowerOnAfterPowerLoss(),ports[2].getPowerOnAfterPowerLoss(),ports[3].getPowerOnAfterPowerLoss())
     print "port names:  port 1: \"%s\", port2: \"%s\", port 3: \"%s\", port 4: \"%s\"" % (ports[0].getName(),ports[1].getName(),ports[2].getName(),ports[3].getName())
     print "manual mode:  port 1: %s, port 2: %s, port 3: %s, port 4: %s" % (ports[0].getManualMode(),ports[1].getManualMode(),ports[2].getManualMode(),ports[3].getManualMode())
     print "interrupt delay:  port 1: %s seconds, port 2: %s seconds, port 3: %s seconds, port 4: %s seconds" % (ports[0].getInterruptDelay(),ports[1].getInterruptDelay(),ports[2].getInterruptDelay(),ports[3].getInterruptDelay())

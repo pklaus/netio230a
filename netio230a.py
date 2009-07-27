@@ -60,8 +60,9 @@ class netio230a(object):
         # create a TCP/IP socket
         self.__s = socket(AF_INET, SOCK_STREAM)
         self.__s.settimeout(6)
+        self.__login()
  
-    def login(self):
+    def __login(self):
         # connect to the server
         try:
             self.__s.connect((self.__host, self.__port))
@@ -97,11 +98,15 @@ class netio230a(object):
         if re.search("^250 OK\r\n$", data) == None:
             raise NameError("Error while connecting: Login failed; response from NET-IO 230A is:  " + data)
 
-    def getPortStatus(self):
+    def getPortList(self):
         return self.__sendRequest("port list")
     
     def getPortSetup(self,port):
         return self.__sendRequest("port setup " + str(port+1))
+    
+    def setPortPower(self,port,switchOn=False):
+        # the type conversion of switchOn ensures that the values are either "0" or "1":
+        self.__sendRequest("port " + str(port) + " " + str(int(bool(int(switchOn)))) )
     
     def getFirmwareVersion(self):
         return self.__sendRequest("version")
@@ -135,10 +140,12 @@ class netio230a(object):
     
     def updatePortsStatus(self):
         ports = []
+        powerOnStatus = self.getPortList()
         for i in range(4):
             ports.append(self.getPortSetup(i).split())
             self.__ports[i].setName(ports[i][0].replace("\"",""))
-            self.__ports[i].setPortSwitchedOn(bool(int(ports[i][3])))
+            self.__ports[i].setPowerOnAfterPowerLoss(bool(int(ports[i][3])))
+            self.__ports[i].setPowerOn(bool(powerOnStatus[i]))
             self.__ports[i].setManualMode(ports[i][1]=="manual")
             self.__ports[i].setInterruptDelay(int(ports[i][2]))
             
@@ -178,14 +185,19 @@ class port(object):
     def getManualMode(self):
         return self.__manualMode
     
+    def setPowerOnAfterPowerLoss(self,powerOn=False):
+        self.__powerOnAfterPowerLoss = powerOn
+    def getPowerOnAfterPowerLoss(self):
+        return self.__powerOnAfterPowerLoss
+    
     def setTimerMode(self,timerMode):
         self.__manualMode = not timerMode
     def getTimerMode(self):
         return not self.__manualMode
     
-    def setPortSwitchedOn(self,powerStatus):
-        self.__powerOn = powerStatus
-    def getPortSwitchedOn(self):
+    def setPowerOn(self,powerOn = False):
+        self.__powerOn = powerOn
+    def getPowerOn(self):
         return self.__powerOn
     
     def setName(self,newName):
