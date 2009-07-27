@@ -41,32 +41,28 @@ def main():
     except StandardError:
         print("could not connect")
         sys.exit(1)
-    portList = netio.getPortStatus()
     version = netio.getFirmwareVersion()
-    #swDelayBefore = netio.getSwitchDelay()
-    #netio.setSwitchDelay(1.5)
-    #swDelayAfter = netio.getSwitchDelay()
     swDelay = netio.getSwitchDelay()
-    port1 = netio.getPort(0)
-    port2 = netio.getPort(1)
-    port3 = netio.getPort(2)
-    port4 = netio.getPort(3)
+    ports = netio.getAllPorts()
+    port1Status = netio.getPortSetup(0)
     deviceAlias = netio.getDeviceAlias()
     watchdogSettings1 = netio.getWatchdogSettings(1)
     networkSettings = netio.getNetworkSettings()
     netio = None
     
     # print response
-    print "Ports:  port 1 %s, port2 %s, port 3 %s, port 4 %s" % (port1.getPortSwitchedOn(),port2.getPortSwitchedOn(),port3.getPortSwitchedOn(),port4.getPortSwitchedOn())
-    print "Ports:  port 1 %s, port2 %s, port 3 %s, port 4 %s" % (portList[0],portList[1],portList[2],portList[3])
-    print "Firmware Version: %s" % (version),
-    #print "switch delay before: %s" % (swDelayBefore),
-    #print "switch delay after: %s" % (swDelayAfter),
-    print "switch delay: %s" % (swDelay),
-    print "device alias: %s" % (deviceAlias),
-    print "watchdog settings for port 1: %s" % (watchdogSettings1),
-    print "network settings: %s" % (networkSettings),
-
+    print "\n--------- successfully queried the Koukaam NETIO 230A ---------"
+    print "power status:  port 1: %s, port 2: %s, port 3: %s, port 4: %s" % (ports[0].getPortSwitchedOn(),ports[1].getPortSwitchedOn(),ports[2].getPortSwitchedOn(),ports[3].getPortSwitchedOn())
+    print "port names:  port 1: \"%s\", port2: \"%s\", port 3: \"%s\", port 4: \"%s\"" % (ports[0].getName(),ports[1].getName(),ports[2].getName(),ports[3].getName())
+    print "manual mode:  port 1: %s, port 2: %s, port 3: %s, port 4: %s" % (ports[0].getManualMode(),ports[1].getManualMode(),ports[2].getManualMode(),ports[3].getManualMode())
+    print "interrupt delay:  port 1: %s seconds, port 2: %s seconds, port 3: %s seconds, port 4: %s seconds" % (ports[0].getInterruptDelay(),ports[1].getInterruptDelay(),ports[2].getInterruptDelay(),ports[3].getInterruptDelay())
+    print "Firmware Version: %s" % (version)
+    print "switch delay: %s seconds" % (swDelay)
+    print "status of port 1: %s" % (port1Status)
+    print "device alias: %s" % (deviceAlias)
+    print "watchdog settings for port 1: %s" % (watchdogSettings1)
+    print "network settings: %s" % (networkSettings)
+    print "---------------------------------------------------------------- \n"
     
 
 if __name__ == '__main__':

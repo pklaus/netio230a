@@ -26,6 +26,15 @@
 # The class aimes at providing complete coverage of the functionality of the box
 #  but not every action is supported yet.
 
+
+
+###--------- ToDo next ------------
+# http://koukaam.se/koukaam/forum/viewthread.php?forum_id=18&thread_id=399
+# Command for enable wd with 360s delay on output 2:
+# port wd 2 enable 192.168.10.101 10 360 1 3 enable enable
+
+
+
 # for the raw TCP socket connection:
 from socket import *
 # for md5 checksum:
@@ -91,6 +100,9 @@ class netio230a(object):
     def getPortStatus(self):
         return self.__sendRequest("port list")
     
+    def getPortSetup(self,port):
+        return self.__sendRequest("port setup " + str(port+1))
+    
     def getFirmwareVersion(self):
         return self.__sendRequest("version")
     
@@ -107,7 +119,7 @@ class netio230a(object):
         return self.__sendRequest("system swdelay " + str(int(math.ceil(seconds*10.0))))
     
     def getSwitchDelay(self):
-        return self.__sendRequest("system swdelay")
+        return int(self.__sendRequest("system swdelay"))/10.0
     
     
     def setPort(self,number,port):
@@ -117,14 +129,20 @@ class netio230a(object):
         self.updatePortsStatus()
         return self.__ports[number]
     
-    def updatePortsStatus(self):
-        data = self.getPortStatus()
-        self.__ports[0].setPortSwitchedOn(bool(int(data[0])))
-        self.__ports[1].setPortSwitchedOn(bool(int(data[1])))
-        self.__ports[2].setPortSwitchedOn(bool(int(data[2])))
-        self.__ports[3].setPortSwitchedOn(bool(int(data[3])))
-        #self.__allPorts.getPort1().setPortType()
+    def getAllPorts(self):
+        self.updatePortsStatus()
+        return self.__ports
     
+    def updatePortsStatus(self):
+        ports = []
+        for i in range(4):
+            ports.append(self.getPortSetup(i).split())
+            self.__ports[i].setName(ports[i][0].replace("\"",""))
+            self.__ports[i].setPortSwitchedOn(bool(int(ports[i][3])))
+            self.__ports[i].setManualMode(ports[i][1]=="manual")
+            self.__ports[i].setInterruptDelay(int(ports[i][2]))
+            
+            #still missing: setWatchdogOn
     
     # generic method to send requests to the NET-IO 230A and checking the response
     def __sendRequest(self,request):
@@ -134,7 +152,7 @@ class netio230a(object):
             raise NameError("Error while sending request: " + request + "\nresponse from NET-IO 230A is:  " + data)
             return None
         else:
-            return data.replace("250 ","")
+            return data.replace("250 ","").replace("\r\n","")
     
     def disconnect(self):
 	    # close the socket:
@@ -149,15 +167,39 @@ class netio230a(object):
 class port(object):
 
     def __init__(self):
-        self.__portType = 0
+        self.__name = ""
+        self.__manualMode = True #  False  means  timer mode
         self.__powerOn = False
+        self.__watchdogOn = False
+        self.__interruptDelay = 2
     
-    def setPortType(self,portType):
-        self.__portType = portType
+    def setManualMode(self,manualMode=True):
+        self.__manualMode = manualMode
+    def getManualMode(self):
+        return self.__manualMode
+    
+    def setTimerMode(self,timerMode):
+        self.__manualMode = not timerMode
+    def getTimerMode(self):
+        return not self.__manualMode
     
     def setPortSwitchedOn(self,powerStatus):
         self.__powerOn = powerStatus
-    
     def getPortSwitchedOn(self):
         return self.__powerOn
+    
+    def setName(self,newName):
+        self.__name = newName
+    def getName(self):
+        return self.__name
+    
+    def setInterruptDelay(self,interruptDelay):
+        self.__interruptDelay = interruptDelay
+    def getInterruptDelay(self):
+        return self.__interruptDelay
+    
+    def setWatchdogOn(self,watchdogOn):
+        self.__watchdogOn = watchdogOn
+    def getWatchdogOn(self):
+        return self.__watchdogOn
     
