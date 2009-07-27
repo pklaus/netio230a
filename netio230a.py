@@ -47,15 +47,26 @@ class netio230a(object):
         self.__secureLogin = secureLogin
         self.__port = 23
         self.__bufsize = 1024
-        self.__allPorts = allPorts()
+        self.__ports = [ port() , port() , port() , port() ]
         # create a TCP/IP socket
         self.__s = socket(AF_INET, SOCK_STREAM)
+        self.__s.settimeout(6)
  
     def login(self):
         # connect to the server
-        self.__s.connect((self.__host, self.__port))
-        # wait for the answer
-        data = self.__s.recv(self.__bufsize)
+        try:
+            self.__s.connect((self.__host, self.__port))
+            # wait for the answer
+            data = self.__s.recv(self.__bufsize)
+        except error:
+            errno, errstr = sys.exc_info()[:2]
+            if errno == socket.timeout:
+                raise NameError("Timeout while connecting to " + self.__host)
+                #print "There was a timeout"
+            else:
+                raise NameError("No connection to endpoint " + self.__host)
+                #print "There was some other socket error"
+            return False
         # The answer should be in the form     "100 HELLO E675DDA5"
         # where the last eight letters are random hexcode used to hash the password
         if re.search("^100 HELLO [0-9A-F]{8}\r\n$", data) == None:
@@ -98,14 +109,22 @@ class netio230a(object):
     def getSwitchDelay(self):
         return self.__sendRequest("system swdelay")
     
-    def getAllPorts(self):
+    
+    def setPort(self,number,port):
+        self.__ports[number] = port
+    
+    def getPort(self,number):
+        self.updatePortsStatus()
+        return self.__ports[number]
+    
+    def updatePortsStatus(self):
         data = self.getPortStatus()
-        self.__allPorts.getPort1().setPortSwitchedOn(bool(int(data[0])))
-        self.__allPorts.getPort2().setPortSwitchedOn(bool(int(data[1])))
-        self.__allPorts.getPort3().setPortSwitchedOn(bool(int(data[2])))
-        self.__allPorts.getPort4().setPortSwitchedOn(bool(int(data[3])))
+        self.__ports[0].setPortSwitchedOn(bool(int(data[0])))
+        self.__ports[1].setPortSwitchedOn(bool(int(data[1])))
+        self.__ports[2].setPortSwitchedOn(bool(int(data[2])))
+        self.__ports[3].setPortSwitchedOn(bool(int(data[3])))
         #self.__allPorts.getPort1().setPortType()
-        return self.__allPorts
+    
     
     # generic method to send requests to the NET-IO 230A and checking the response
     def __sendRequest(self,request):
@@ -117,35 +136,15 @@ class netio230a(object):
         else:
             return data.replace("250 ","")
     
-    def __del__(self):
+    def disconnect(self):
 	    # close the socket:
         self.__s.close()
+    
+    def __del__(self):
+        self.disconnect()
+    ###   end of class netio230a   ----------------
 
 
-class allPorts(object):
-    def __init__(self):
-        self.__port1 = port()
-        self.__port2 = port()
-        self.__port3 = port()
-        self.__port4 = port()
-    
-    def setPort1(self,port):
-        self.__port1 = port
-    def setPort2(self,port):
-        self.__port2 = port
-    def setPort3(self,port):
-        self.__port3 = port
-    def setPort4(self,port):
-        self.__port4 = port
-    
-    def getPort1(self):
-        return self.__port1
-    def getPort2(self):
-        return self.__port2
-    def getPort3(self):
-        return self.__port3
-    def getPort4(self):
-        return self.__port4
 
 class port(object):
 

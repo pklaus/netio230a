@@ -27,6 +27,8 @@
 import netio230a
 ## for debugging (set debug mark with pdb.set_trace() )
 import pdb
+## for sys.exit(1)
+import sys
 
 
 host = "192.168.1.2"
