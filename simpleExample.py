@@ -44,7 +44,7 @@ def main():
         print("could not connect")
         sys.exit(1)
     portPowerBefore = netio.getPortList()
-    netio.setPortPower(2,True)
+    netio.setPortPower(portToChange,portOn)
     portPowerAfter = netio.getPortList()
     
     netio = None
