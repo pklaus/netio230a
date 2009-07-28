@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
 # -*- encoding: UTF8 -*-
 
 # Author: Philipp Klaus, philipp.l.klaus AT web.de
