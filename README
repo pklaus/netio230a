@@ -3,7 +3,7 @@
  Author: Philipp Klaus, philipp.l.klaus AT web.de
 
 This software (netio230a) provides an interface via TCP to control 
-the Koukaam NetIO 230A.
+the Koukaam NETIO 230A.
 The software consists of a class to represent the possibilities of 
 the product and example code to show how to use it.
 
