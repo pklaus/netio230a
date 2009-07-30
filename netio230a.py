@@ -46,6 +46,10 @@ import pdb
 # for math.ceil()
 import math
 
+import time
+### for date.today()
+#from datetime import date
+from datetime import datetime
 
 class netio230a(object):
 
@@ -108,24 +112,71 @@ class netio230a(object):
         # the type conversion of switchOn ensures that the values are either "0" or "1":
         self.__sendRequest("port " + str(port) + " " + str(int(bool(int(switchOn)))) )
     
+    def setPortTempInterrupt(self,port):
+        self.__sendRequest("port " + str(int(port)) + " int" )
+    
     def getFirmwareVersion(self):
         return self.__sendRequest("version")
     
     def getDeviceAlias(self):
         return self.__sendRequest("alias")
+    def setDeviceAlias(self,alias = "netio230a"):
+        self.__sendRequest("alias " + alias)
+    
+    def rebootDevice():
+        self.__sendRequest("reboot")
     
     def getWatchdogSettings(self,port):
         return self.__sendRequest("port wd " + str(port))
     
     def getNetworkSettings(self):
         return self.__sendRequest("system eth")
+    def setNetworkSettings(self,dhcpMode=False,deviceIP="192.168.1.2",subnetMask="255.255.255.0",gatewayIP="192.168.1.1"):
+        if dhcpMode:
+            self.__sendRequest("system eth dhcp")
+        else:
+            self.__sendRequest("system eth manual " + deviceIP + " " + subnetMask + " " + gatewayIP)
+    
+    def getDnsServer(self):
+        return self.__sendRequest("system dns")
+    def setDnsServer(self,dnsServer="192.168.1.1"):
+        self.__sendRequest("system dns " + dnsServer)
+    
+    def getSystemDiscoverableUsingTool(self):
+        if self.__sendRequest("system discover") == "enable":
+            return True
+        else:
+            return False
+    def setSystemDiscoverableUsingTool(self,setDiscoverable=True):
+        if setDiscoverable:
+            command = "enable"
+        else:
+            command = "disable"
+        self.__sendRequest("system discover " + command)
     
     def setSwitchDelay(self,seconds):
         return self.__sendRequest("system swdelay " + str(int(math.ceil(seconds*10.0))))
-    
     def getSwitchDelay(self):
         return int(self.__sendRequest("system swdelay"))/10.0
     
+    def getSntpSettings(self):
+        return self.__sendRequest("system sntp")
+    def setSntpSettings(self,enable=True,sntpServer="time.nist.gov"):
+        if enable:
+            command = "enable"
+        else:
+            command = "disable"
+        self.__sendRequest("system sntp " + " " + sntpServer)
+    
+    def setSystemTime(self,dt):
+        self.__sendRequest("system time " + dt.strftime("%Y/%m/%d,%H:%M:%S") )
+    def getSystemTime(self):
+        return self.__sendRequest("system time")
+    
+    def getSystemTimezone(self):
+        return float(int(self.__sendRequest("system timezone")))/3600.0
+    def setSystemTimezone(self,hoursOffset):
+        self.__sendRequest("system timezone " + str(math.ceil(hoursOffset*3600.0)))
     
     def setPort(self,number,port):
         self.__ports[number] = port
@@ -145,10 +196,9 @@ class netio230a(object):
             ports.append(self.getPortSetup(i).split())
             self.__ports[i].setName(ports[i][0].replace("\"",""))
             self.__ports[i].setPowerOnAfterPowerLoss(bool(int(ports[i][3])))
-            self.__ports[i].setPowerOn(bool(powerOnStatus[i]))
+            self.__ports[i].setPowerOn(bool(int(powerOnStatus[i])))
             self.__ports[i].setManualMode(ports[i][1]=="manual")
             self.__ports[i].setInterruptDelay(int(ports[i][2]))
-            
             #still missing: setWatchdogOn
     
     # generic method to send requests to the NET-IO 230A and checking the response
