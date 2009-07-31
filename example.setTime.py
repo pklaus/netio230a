@@ -25,17 +25,17 @@
 
 ## import the netio230a class:
 import netio230a
-## for debugging (set debug mark with pdb.set_trace() )
-import pdb
 ## for sys.exit(1)
 import sys
 
 
+from datetime import datetime
+### for timedelta()
+from datetime import timedelta
+
 host = "192.168.1.2"
 pw = "your choosen password"
 
-portToChange=2
-portOn=True
 
 def main():
     try:
@@ -43,18 +43,17 @@ def main():
     except StandardError:
         print("could not connect")
         sys.exit(1)
-    portPowerBefore = netio.getPortList()
-    netio.setPortPower(portToChange,portOn)
-    portPowerAfter = netio.getPortList()
+    systemTime = netio.getSystemTime()
+    netio.setSystemTime(datetime.now()+timedelta(days=1))
+    newSystemTime = netio.getSystemTime()
     
     netio = None
     
     # print response
     print "\n--------- successfully queried the Koukaam NETIO 230A ---------"
-    print "power status before change:  port 1: %s, port 2: %s, port 3: %s, port 4: %s" % (portPowerBefore[0],portPowerBefore[1],portPowerBefore[2],portPowerBefore[3] )
-    print "set port %s to: \"%s\"" % (portToChange,portOn)
-    print "power status after change:  port 1: %s, port 2: %s, port 3: %s, port 4: %s" % (portPowerAfter[0],portPowerAfter[1],portPowerAfter[2],portPowerAfter[3] )
-    print "---------------------------------------------------------------- \n"
+    print "system time: %s" % (systemTime)
+    print "system time after update: %s" % (newSystemTime)
+    print "--------------------------------------------------------------- \n"
     
 
 if __name__ == '__main__':

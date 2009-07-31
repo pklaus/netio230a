@@ -115,6 +115,9 @@ class netio230a(object):
     def setPortTempInterrupt(self,port):
         self.__sendRequest("port " + str(int(port)) + " int" )
     
+    def setPortManualMode(self,port,manualMode=True):
+        self.__sendRequest("port " + str(int(port)) + " manual")
+    
     def getFirmwareVersion(self):
         return self.__sendRequest("version")
     
@@ -123,8 +126,10 @@ class netio230a(object):
     def setDeviceAlias(self,alias = "netio230a"):
         self.__sendRequest("alias " + alias)
     
-    def rebootDevice():
-        self.__sendRequest("reboot")
+    # this command is operation-safe: it does not switch the ports on/off during reboot of the NETIO 230A
+    def reboot(self):
+        self.__sendRequest("reboot",False)
+        self.disconnect()
     
     def getWatchdogSettings(self,port):
         return self.__sendRequest("port wd " + str(port))
@@ -202,10 +207,10 @@ class netio230a(object):
             #still missing: setWatchdogOn
     
     # generic method to send requests to the NET-IO 230A and checking the response
-    def __sendRequest(self,request):
+    def __sendRequest(self,request,complainIfAnswerNot250=True):
         self.__s.send(request+"\n")
         data = self.__s.recv(self.__bufsize)
-        if re.search("^250 ", data) == None:
+        if re.search("^250 ", data) == None and complainIfAnswerNot250:
             raise NameError("Error while sending request: " + request + "\nresponse from NET-IO 230A is:  " + data)
             return None
         else:

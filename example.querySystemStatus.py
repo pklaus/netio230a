@@ -30,14 +30,10 @@ import pdb
 ## for sys.exit(1)
 import sys
 
-from datetime import datetime
-### for timedelta()
-from datetime import timedelta
 
 host = "192.168.1.2"
 pw = "your choosen password"
 
-interruptPort=2
 
 def main():
     try:
@@ -49,7 +45,6 @@ def main():
     swDelay = netio.getSwitchDelay()
     ports = netio.getAllPorts()
     port1Status = netio.getPortSetup(0)
-    netio.setPortTempInterrupt(interruptPort)
     deviceAlias = netio.getDeviceAlias()
     watchdogSettings1 = netio.getWatchdogSettings(1)
     networkSettings = netio.getNetworkSettings()
@@ -58,8 +53,6 @@ def main():
     sntpSettings = netio.getSntpSettings()
     systemTime = netio.getSystemTime()
     timezoneOffset = netio.getSystemTimezone()
-    netio.setSystemTime(datetime.now())
-    newSystemTime = netio.getSystemTime()
     
     netio = None
     
@@ -73,7 +66,6 @@ def main():
     print "Firmware Version: %s" % (version)
     print "switch delay: %s seconds" % (swDelay)
     print "status of port 1: %s" % (port1Status)
-    print "temporarily interrupted port %s" % (interruptPort)
     print "device alias: %s" % (deviceAlias)
     print "watchdog settings for port 1: %s" % (watchdogSettings1)
     print "network settings: %s" % (networkSettings)
@@ -82,7 +74,6 @@ def main():
     print "SNTP settings: %s" % (sntpSettings)
     print "system time: %s" % (systemTime)
     print "timezone offset: %s hours" % (timezoneOffset)
-    print "system time after update: %s" % (newSystemTime)
     
     print "---------------------------------------------------------------- \n"
     
