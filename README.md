@@ -12,10 +12,10 @@ the product and example code to show how to use it.
 I hope that someone will join the team as I have no time yet to complete
 the class. If you know Python and want to contribute, then please join the team!
 
-## Required frame-works
+## Required Python modules
 
-This project uses the python modules socket, ... and the example.gui.py file
-needs pygtk installed.
+This project uses the python modules socket, hashlib, re, math, time, datetime and sys.
+The example.gui.py file needs pygtk installed.
 
 ## License
 
