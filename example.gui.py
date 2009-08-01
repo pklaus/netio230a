@@ -45,7 +45,7 @@ class netio230aGUI:
         
         builder.connect_signals(self)
         
-        self.__update_output()
+        self.__updatePortStatus()
     
     def gtk_main_quit( self, window ):
         gtk.main_quit()
@@ -57,25 +57,30 @@ class netio230aGUI:
         self.about_dialog.run()
         self.about_dialog.hide()
         
-    def cb_updateToggleButtons(self, notebook, page, page_num):
-        if page_num != 2:
+    def cb_updateDisplay(self, notebook, page, page_num):
+        if page_num == 0:
+            self.__updatePortStatus()
+        elif page_num == 1:
+            self.__updateSystemSetup()
+        elif page_num == 2:
+            try:
+                netio = netio230a.netio230a(host, "admin", pw, True)
+            except StandardError:
+                print("could not connect")
+                return
+            ports = netio.getAllPorts()
+            netio = None
+            self.window.get_children()[0].get_children()[1].get_children()[2].get_children()[0].get_children()[1].set_active(ports[0].getPowerOn())
+            self.window.get_children()[0].get_children()[1].get_children()[2].get_children()[1].get_children()[1].set_active(ports[1].getPowerOn())
+            self.window.get_children()[0].get_children()[1].get_children()[2].get_children()[2].get_children()[1].set_active(ports[2].getPowerOn())
+            self.window.get_children()[0].get_children()[1].get_children()[2].get_children()[3].get_children()[1].set_active(ports[3].getPowerOn())
+        else:
             return
-        try:
-            netio = netio230a.netio230a(host, "admin", pw, True)
-        except StandardError:
-            print("could not connect")
-            return
-        ports = netio.getAllPorts()
-        netio = None
-        self.window.get_children()[0].get_children()[2].get_children()[0].get_children()[1].set_active(ports[0].getPowerOn())
-        self.window.get_children()[0].get_children()[2].get_children()[1].get_children()[1].set_active(ports[1].getPowerOn())
-        self.window.get_children()[0].get_children()[2].get_children()[2].get_children()[1].set_active(ports[2].getPowerOn())
-        self.window.get_children()[0].get_children()[2].get_children()[3].get_children()[1].set_active(ports[3].getPowerOn())
     
     def cb_refresh(self, button):
-        self.__update_output()
+        self.__updatePortStatus()
 
-    def __update_output(self):
+    def __updatePortStatus(self):
         try:
             netio = netio230a.netio230a(host, "admin", pw, True)
         except StandardError:
@@ -85,7 +90,27 @@ class netio230aGUI:
         netio = None
         tb = gtk.TextBuffer()
         tb.set_text("power status:\nport 1: %s\nport 2: %s\nport 3: %s\nport 4: %s" % (ports[0].getPowerOn(),ports[1].getPowerOn(),ports[2].getPowerOn(),ports[3].getPowerOn()))
-        self.window.get_children()[0].get_children()[0].get_children()[1].set_buffer( tb )
+        self.window.get_children()[0].get_children()[1].get_children()[0].get_children()[1].set_buffer( tb )
+    
+    
+    
+    def __updateSystemSetup(self):
+        try:
+            netio = netio230a.netio230a(host, "admin", pw, True)
+        except StandardError:
+            print("could not connect")
+            return
+        deviceAlias = netio.getDeviceAlias()
+        version = netio.getFirmwareVersion()
+        systemTime = netio.getSystemTime()
+        timezoneOffset = netio.getSystemTimezone()
+        sntpSettings = netio.getSntpSettings()
+        netio = None
+        self.window.get_children()[0].get_children()[1].get_children()[1].get_children()[0].get_children()[1].set_text( deviceAlias )
+        self.window.get_children()[0].get_children()[1].get_children()[1].get_children()[1].get_children()[1].set_text( version )
+        self.window.get_children()[0].get_children()[1].get_children()[1].get_children()[2].get_children()[1].set_text( systemTime )
+        self.window.get_children()[0].get_children()[1].get_children()[1].get_children()[3].get_children()[1].set_text( str(timezoneOffset) + " hours" )
+        self.window.get_children()[0].get_children()[1].get_children()[1].get_children()[4].get_children()[1].set_text( sntpSettings )
     
         
     def cb_switch1On(self, togglebutton):
