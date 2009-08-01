@@ -121,6 +121,7 @@
                     <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
                     <property name="draw_indicator">True</property>
+                    <signal name="clicked" handler="cb_switch1On"/>
                   </object>
                   <packing>
                     <property name="position">1</property>
