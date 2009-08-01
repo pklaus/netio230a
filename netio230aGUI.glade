@@ -118,10 +118,9 @@
                 <child>
                   <object class="GtkCheckButton" id="port1">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
                     <property name="draw_indicator">True</property>
-                    <signal name="toggled" handler="cb_switch1On"/>
                   </object>
                   <packing>
                     <property name="position">1</property>
@@ -147,10 +146,10 @@
                 <child>
                   <object class="GtkCheckButton" id="port2">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
                     <property name="draw_indicator">True</property>
-                    <signal name="toggled" handler="cb_switch2On"/>
+                    <signal name="clicked" handler="cb_switch2On"/>
                   </object>
                   <packing>
                     <property name="position">1</property>
@@ -176,10 +175,10 @@
                 <child>
                   <object class="GtkCheckButton" id="port3">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
                     <property name="draw_indicator">True</property>
-                    <signal name="toggled" handler="cb_switch3On"/>
+                    <signal name="clicked" handler="cb_switch3On"/>
                   </object>
                   <packing>
                     <property name="position">1</property>
@@ -205,10 +204,10 @@
                 <child>
                   <object class="GtkCheckButton" id="port4">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
                     <property name="draw_indicator">True</property>
-                    <signal name="toggled" handler="cb_switch4On"/>
+                    <signal name="clicked" handler="cb_switch4On"/>
                   </object>
                   <packing>
                     <property name="position">1</property>
