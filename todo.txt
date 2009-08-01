@@ -1,0 +1,9 @@
+todo
+ - implement the watchdog functionality (representation in port class)
+ - implement the timer functionality (representation in port class)
+ - maybe cleanup of the public methods of the netio230a class?
+ - type safety!!!
+
+done
+ - implemented all documented commands found in the manual up to command "port" on page 19.
+
