@@ -344,7 +344,7 @@
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
                         <property name="draw_indicator">True</property>
-                        <signal name="toggled" handler="cb_switch1On"/>
+                        <signal name="clicked" handler="cb_switch1On"/>
                       </object>
                       <packing>
                         <property name="position">1</property>
@@ -373,7 +373,7 @@
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
                         <property name="draw_indicator">True</property>
-                        <signal name="toggled" handler="cb_switch2On"/>
+                        <signal name="clicked" handler="cb_switch2On"/>
                       </object>
                       <packing>
                         <property name="position">1</property>
@@ -402,7 +402,7 @@
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
                         <property name="draw_indicator">True</property>
-                        <signal name="toggled" handler="cb_switch3On"/>
+                        <signal name="clicked" handler="cb_switch3On"/>
                       </object>
                       <packing>
                         <property name="position">1</property>
@@ -431,7 +431,7 @@
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
                         <property name="draw_indicator">True</property>
-                        <signal name="toggled" handler="cb_switch4On"/>
+                        <signal name="clicked" handler="cb_switch4On"/>
                       </object>
                       <packing>
                         <property name="position">1</property>
