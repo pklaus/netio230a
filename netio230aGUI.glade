@@ -8,6 +8,7 @@
     <property name="title" translatable="yes">NETIO 230A control</property>
     <property name="resizable">False</property>
     <property name="window_position">mouse</property>
+    <property name="icon">netio230a_icon.png</property>
     <signal name="destroy" handler="gtk_main_quit"/>
     <child>
       <object class="GtkVBox" id="vbox1">
