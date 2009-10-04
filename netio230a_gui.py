@@ -25,6 +25,7 @@
 # http://library.gnome.org/devel/pygobject/stable/
 
 import sys
+import os # for os.path.abspath() and os.path.dirname()
 import gtk
 ## for debugging (set debug mark with pdb.set_trace() )
 import pdb
@@ -37,8 +38,9 @@ class netio230aGUI:
     
     
     def __init__(self):
+        fullpath = os.path.abspath(os.path.dirname(sys.argv[0]))
         builder = gtk.Builder()
-        builder.add_from_file("netio230aGUI.glade") 
+        builder.add_from_file(fullpath + "/resources/netio230aGUI.glade") 
         
         self.window = builder.get_object("mainWindow")
         self.about_dialog = builder.get_object( "aboutDialog" )
