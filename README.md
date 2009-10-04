@@ -20,10 +20,10 @@ The example.gui.py file needs pygtk installed.
 
 ## Installation and Usage
 
-The software is tested and known to work on Ubuntu Linux and on Microsoft Windows XP.
+The software is tested and known to work on Ubuntu Linux 9.04 Jaunty and on Microsoft Windows XP.
 It should, however, work on any operating system that supports python (and PyGTK for the GUI).
 
-Please refer to the Wiki site http://wiki.github.com/pklaus/netio230a/installation-howto
+Please refer to the Wiki site <http://wiki.github.com/pklaus/netio230a/installation-howto>
 for information on how to install and use the software.
 
 ## License
