@@ -45,6 +45,8 @@ import re
 import pdb
 # for math.ceil()
 import math
+# for shlex.shlex() (to parse answers from the NETIO 230A)
+import shlex
 
 import time
 ### for date.today()
@@ -199,7 +201,9 @@ class netio230a(object):
         ports = []
         powerOnStatus = self.getPortList()
         for i in range(4):
-            ports.append(self.getPortSetup(i).split())
+            status_splitter = shlex.shlex(self.getPortSetup(i), posix=True)
+            status_splitter.whitespace_split = True
+            ports.append( list(status_splitter) )
             self.__ports[i].setName(ports[i][0].replace("\"",""))
             self.__ports[i].setPowerOnAfterPowerLoss(bool(int(ports[i][3])))
             self.__ports[i].setPowerOn(bool(int(powerOnStatus[i])))
