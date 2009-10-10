@@ -21,17 +21,13 @@
 
 
  
-# example how to use the netio230a class
- 
-## import the netio230a class:
-## for sys.exit(1)
+# This is a program written for the Python for
+# S60 platform (Nokia Symbian mobile phones).
+# It is tested on a Nokia N95.
+
 import sys
 sys.path.append('e:\\Python')
 import netio230a
- 
-#from datetime import datetime
-### for timedelta()
-#from datetime import timedelta
 
 import appuifw
 import e32
@@ -59,11 +55,18 @@ def exit_key_handler():
 
 def switchPort():
     global netio
-    portToChange = appuifw.query(u"Port to switch:", 'number')
-    portOn = appuifw.query(u"new status for port %s:"% portToChange, 'number')
-    if portToChange == None or portOn == None:
+    portToChange = 0
+    while int(portToChange) < 1 or portToChange > 4:
+        portToChange = appuifw.query(u"Port to switch (between 1 and 4):", 'number')
+    states = [u"On", u"Off"]
+    state = appuifw.popup_menu(states, u"new status for port %s:"% portToChange)
+    if portToChange == None or state == None:
         return
-    netio.setPortPower(int(portToChange),bool(int(portOn)))
+    if state == 1:
+        portOn = False
+    elif state == 0:
+        portOn = True
+    netio.setPortPower(int(portToChange),portOn)
     updateStatus()
 
 #def subitem1():
@@ -88,6 +91,7 @@ def main():
         # wait 3 seconds:
         e32.ao_sleep(3)
         appuifw.app.set_exit() # this completely closes python
+        return
     
     #appuifw.app.menu = [(u"Submenu 1", ((u"sub item 1", subitem1), (u"sub item 2", subitem2))), (u"Exit", exit_key_handler)]
     appuifw.app.menu = [(u"Switch Port", switchPort), (u"Refresh Status", updateStatus), (u"Exit", exit_key_handler)]
