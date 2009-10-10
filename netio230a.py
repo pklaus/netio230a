@@ -45,6 +45,8 @@ import re
 import pdb
 # for math.ceil()
 import math
+# for shlex.shlex() (to parse answers from the NETIO 230A)
+import shlex
 
 import time
 ### for date.today()
@@ -83,11 +85,12 @@ class netio230a(object):
             return False
         # The answer should be in the form     "100 HELLO E675DDA5"
         # where the last eight letters are random hexcode used to hash the password
-        if re.search("^100 HELLO [0-9A-F]{8}\r\n$", data) == None:
+        if re.search("^100 HELLO [0-9A-F]{8}\r\n$", data) == None and re.search("^100 HELLO [0-9A-F]{8} - KSHELL V1.1\r\n$", data) == None  :  # 2nd statement for FW version 2.30
             raise NameError("Error while connecting: Not received a \"100 HELLO ... signal from the NET-IO 230A")
         if self.__secureLogin:
             m = hashlib.md5()
             data = data.replace("100 HELLO ", "")
+            data = data.replace(" - KSHELL V1.1", "") # for FW version 2.30
             netioHash = data.replace("\r\n", "")
             m.update(self.__username + self.__password + netioHash)
             loginString = "clogin " + self.__username + " " + m.hexdigest() + "\n"
@@ -99,7 +102,7 @@ class netio230a(object):
         # wait for the answer
         data = self.__s.recv(self.__bufsize)
         # check the answer for errors
-        if re.search("^250 OK\r\n$", data) == None:
+        if re.search("^250 OK\r\n$", data) == None :
             raise NameError("Error while connecting: Login failed; response from NET-IO 230A is:  " + data)
 
     def getPortList(self):
@@ -198,7 +201,9 @@ class netio230a(object):
         ports = []
         powerOnStatus = self.getPortList()
         for i in range(4):
-            ports.append(self.getPortSetup(i).split())
+            status_splitter = shlex.shlex(self.getPortSetup(i), posix=True)
+            status_splitter.whitespace_split = True
+            ports.append( list(status_splitter) )
             self.__ports[i].setName(ports[i][0].replace("\"",""))
             self.__ports[i].setPowerOnAfterPowerLoss(bool(int(ports[i][3])))
             self.__ports[i].setPowerOn(bool(int(powerOnStatus[i])))
