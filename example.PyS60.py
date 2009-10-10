@@ -90,7 +90,7 @@ def main():
     if netio == None:
         # wait 3 seconds:
         e32.ao_sleep(3)
-        appuifw.app.set_exit() # this completely closes python
+        #appuifw.app.set_exit() # this completely closes python
         return
     
     #appuifw.app.menu = [(u"Submenu 1", ((u"sub item 1", subitem1), (u"sub item 2", subitem2))), (u"Exit", exit_key_handler)]
