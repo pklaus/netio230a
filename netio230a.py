@@ -54,8 +54,20 @@ import time
 from datetime import datetime
 
 class netio230a(object):
-
+    """netio230a is the basic class that you want to instantiate when communicating
+    with the Koukaam NETIO 230A. It can handle the raw TCP socket connection and
+    helps you send the commands to switch on / off ports etc."""
+    
     def __init__(self, host, username, password, secureLogin=False, customPort=23):
+        """construct this class by giving:
+        
+        the host to connect to as a string
+        the username as a string
+        the password of the NETIO 230A as a string
+        secureLogin (bool) if md5 hashed password will be transmitted
+        customPort (int) if you changed the port on your NETIO 230A.
+        
+        Returns an object of class type netio230a.netio230a"""
         self.__host = host
         self.__username = username
         self.__password = password
@@ -69,6 +81,7 @@ class netio230a(object):
         self.__login()
  
     def __login(self):
+        """Login to the server using the credentials given to the constructor."""
         # connect to the server
         try:
             self.__s.connect((self.__host, self.__port))
@@ -106,9 +119,16 @@ class netio230a(object):
             raise NameError("Error while connecting: Login failed; response from NET-IO 230A is:  " + data)
 
     def getPortList(self):
+        """Sends request to the NETIO 230A to request the port status.
+        
+        Returns string specifying which ports are switched on/off.
+        For example: "1001" (port 1 and port 4 are on, all others off)"""
         return self.__sendRequest("port list")
     
     def getPortSetup(self,port):
+        """Sends request to the NETIO 230A to request the setup of a port given as a parameter.
+        
+        Returns the status as a string in the format: ..."""
         return self.__sendRequest("port setup " + str(port+1))
     
     def setPortPower(self,port,switchOn=False):
