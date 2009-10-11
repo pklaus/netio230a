@@ -58,6 +58,8 @@ def switchPort():
     portToChange = 0
     while int(portToChange) < 1 or portToChange > 4:
         portToChange = appuifw.query(u"Port to switch (between 1 and 4):", 'number')
+        if portToChange == None:
+            return
     states = [u"On", u"Off"]
     state = appuifw.popup_menu(states, u"new status for port %s:"% portToChange)
     if portToChange == None or state == None:
