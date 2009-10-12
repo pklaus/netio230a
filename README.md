@@ -15,7 +15,7 @@ the class. If you know Python and want to contribute, then please join the team!
 
 ## Required Python modules
 
-This project uses the python modules socket, hashlib, re, math, time, datetime and sys.
+This project uses the python modules socket, hashlib, re, math, time, datetime, shlex and sys.
 The example.gui.py file needs pygtk installed.
 
 ## Installation and Usage
