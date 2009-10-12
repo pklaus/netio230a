@@ -24,7 +24,11 @@
 import socket
 import threading
 import array
+import time
+import sys
 
+EXIT_SUCCESS=0
+EXIT_FAILURE=1
 
 class UDPintsockThread(threading.Thread):
     def __init__ (self,port):
@@ -40,6 +44,7 @@ class UDPintsockThread(threading.Thread):
         while True:
             try:
                 data, addr = UDPinsock.recvfrom(1024)
+                answerTime=time.time()
             except:
                 #print "server timeout"
                 break
@@ -59,7 +64,7 @@ class UDPintsockThread(threading.Thread):
                 for n in range(0, 4):
                     gw.append(data[27+n])
                 print
-                print "UPD answer from:" , addr[0]
+                print "UPD answer in %.2f ms from: %s " % ((answerTime-startTime)*1000,addr[0])
                 print "Found a Koukaam NETIO-230A:"
                 print "Name is:", deviceName
                 print "IP address:", "%s.%s.%s.%s" % (ip[0], ip[1], ip[2], ip[3])
@@ -67,7 +72,11 @@ class UDPintsockThread(threading.Thread):
                 print "Gateway address:", "%s.%s.%s.%s" % (gw[0], gw[1], gw[2], gw[3])
                 print "MAC address:", "%02X:%02X:%02X:%02X:%02X:%02X" % (mac[0], mac[1], mac[2], mac[3], mac[4], mac[5])
                 print
+                global totalCount
+                totalCount += 1
         UDPinsock.close()
+
+
 
 if __name__ == '__main__':
     
@@ -91,9 +100,19 @@ if __name__ == '__main__':
     UDPoutsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     # to allow broadcast communication:
     UDPoutsock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    # set number of found NETIO-230A devices to 0
+    totalCount = 0
+    # set start time
+    startTime = time.time()
+    # send UDP broadcast:
     UDPoutsock.sendto(request, dest)
     
     myUDPintsockThread.join()
-
-
+    
+    if totalCount == 0:
+        print "No Koukaam NETIO-230A device found on your network."
+        sys.exit(EXIT_FAILURE)
+    else:
+        print "Exiting after having found a number of %s Koukaam NETIO-230A devices." % totalCount
+        sys.exit(EXIT_SUCCESS)
 
