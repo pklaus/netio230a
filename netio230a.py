@@ -55,12 +55,12 @@ from datetime import datetime
 
 class netio230a(object):
 
-    def __init__(self, host, username, password, secureLogin=False):
+    def __init__(self, host, username, password, secureLogin=False, customPort=23):
         self.__host = host
         self.__username = username
         self.__password = password
         self.__secureLogin = secureLogin
-        self.__port = 23
+        self.__port = customPort
         self.__bufsize = 1024
         self.__ports = [ port() , port() , port() , port() ]
         # create a TCP/IP socket
