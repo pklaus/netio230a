@@ -27,10 +27,16 @@ import array
 import time
 import sys
 
+
+
 EXIT_SUCCESS=0
 EXIT_FAILURE=1
+NETIO230A_UDP_DISCOVER_PORT = 4000
 
+
+# thread to run the UDP server that listens to answering NETIOs on your network
 class UDPintsockThread(threading.Thread):
+    # custom contructor
     def __init__ (self,port):
         threading.Thread.__init__(self)
         self.__port = port
@@ -39,16 +45,20 @@ class UDPintsockThread(threading.Thread):
         # Create socket and bind to address
         UDPinsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         UDPinsock.bind(addr)
+        # will listen for three seconds to your network
         UDPinsock.settimeout(3)
-        # Receive messages
         while True:
             try:
+                # Receive messages
                 data, addr = UDPinsock.recvfrom(1024)
+                # keep timestamp of arriving package
                 answerTime=time.time()
             except:
                 #print "server timeout"
                 break
-            if data.find("IPCam") == 0:
+            # check if we found a NETIO-230A
+            if data.find("IPCam") == 0 and len(data)== 61:
+                # documentation of data is found on http://wiki.github.com/pklaus/netio230a/netdiscover-protocol
                 deviceName = data[38:38+16]
                 data = array.array('B', data)
                 ip = []
@@ -87,13 +97,13 @@ if __name__ == '__main__':
     request += "\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     request += "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
 
-    port = 4000
+    
 
-    dest = ('<broadcast>',port)
-    #dest = ('255.255.255.255',port)
+    dest = ('<broadcast>',NETIO230A_UDP_DISCOVER_PORT)
+    #dest = ('255.255.255.255',NETIO230A_UDP_DISCOVER_PORT)
 
 
-    myUDPintsockThread = UDPintsockThread(port)
+    myUDPintsockThread = UDPintsockThread(NETIO230A_UDP_DISCOVER_PORT)
     myUDPintsockThread.start()
     
     
