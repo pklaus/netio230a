@@ -65,7 +65,7 @@ class UDPintsockThread(threading.Thread):
                 print "IP address:", "%s.%s.%s.%s" % (ip[0], ip[1], ip[2], ip[3])
                 print "Subnet Mask:", "%s.%s.%s.%s" % (sm[0], sm[1], sm[2], sm[3])
                 print "Gateway address:", "%s.%s.%s.%s" % (gw[0], gw[1], gw[2], gw[3])
-                print "MAC address:", "%x:%x:%x:%x:%x:%x" % (mac[0], mac[1], mac[2], mac[3], mac[4], mac[5])
+                print "MAC address:", "%02X:%02X:%02X:%02X:%02X:%02X" % (mac[0], mac[1], mac[2], mac[3], mac[4], mac[5])
                 print
         UDPinsock.close()
 
