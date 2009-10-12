@@ -224,7 +224,7 @@ class netio230a(object):
             status_splitter = shlex.shlex(self.getPortSetup(i), posix=True)
             status_splitter.whitespace_split = True
             ports.append( list(status_splitter) )
-            self.__ports[i].setName(ports[i][0].replace("\"",""))
+            self.__ports[i].setName(ports[i][0])
             self.__ports[i].setPowerOnAfterPowerLoss(bool(int(ports[i][3])))
             self.__ports[i].setPowerOn(bool(int(powerOnStatus[i])))
             self.__ports[i].setManualMode(ports[i][1]=="manual")
