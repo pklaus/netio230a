@@ -32,6 +32,7 @@ import sys
 EXIT_SUCCESS=0
 EXIT_FAILURE=1
 NETIO230A_UDP_DISCOVER_PORT = 4000
+DEVICE_NAME_TERMINATION = "\x00\x30\x30\x38\x30"
 
 
 # thread to run the UDP server that listens to answering NETIOs on your network
@@ -59,7 +60,7 @@ class UDPintsockThread(threading.Thread):
             # check if we found a NETIO-230A
             if data.find("IPCam") == 0 and len(data)== 61:
                 # documentation of data is found on http://wiki.github.com/pklaus/netio230a/netdiscover-protocol
-                deviceName = data[38:38+16]
+                deviceName = data[38:data.find(DEVICE_NAME_TERMINATION)]
                 data = array.array('B', data)
                 ip = []
                 for n in range(0, 4):
