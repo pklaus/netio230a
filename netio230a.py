@@ -54,10 +54,20 @@ import time
 from datetime import datetime
 
 TELNET_LINE_ENDING = "\r\n"
+TELNET_SOCKET_TIMEOUT = 5
 
 class netio230a(object):
+    """netio230a is the class you want to instantiate in order to command the Koukaam NETIO-230A using Python."""
 
     def __init__(self, host, username, password, secureLogin=False, customPort=23):
+        """netio230a constructor: set up an instance of netio230a by giving:
+        
+            host        the hostname of the NETIO-230A (may be in the form of something.dyndns.org or 192.168.1.2)
+            username    the username you want to use to authenticate against the NETIO-230A
+            password    the password (that belongs to username)
+            secureLogin bool value specifying whether to use a hashed or a cleartext login. True is hightly recommended for insecure networks!
+            customPort  integer specifying which port to connect to, defaul: 23 (NETIO-230A must be reachable via KSHELL/telnet on hostname:customPort)
+        """
         self.__host = host
         self.__username = username
         self.__password = password
@@ -67,10 +77,13 @@ class netio230a(object):
         self.__ports = [ port() , port() , port() , port() ]
         # create a TCP/IP socket
         self.__s = socket(AF_INET, SOCK_STREAM)
-        self.__s.settimeout(6)
+        self.__s.settimeout(TELNET_SOCKET_TIMEOUT)
         self.__login()
  
     def __login(self):
+        """private method! called by the constructor (so all connection details are set already).
+        This method is connecting the socket to the NETIO-230A and logging in the user.
+        """
         # connect to the server
         try:
             self.__s.connect((self.__host, self.__port))
@@ -111,12 +124,18 @@ class netio230a(object):
             raise NameError("Error while connecting: Login failed; response from NET-IO 230A is:  " + data)
 
     def getPortList(self):
+        """method to get the status of the ports
+        returns a string of length 4, each char representing the power status of one port: 0/1"""
         return self.__sendRequest("port list")
     
     def getPortSetup(self,port):
+        """getPortSetup(port): method to get the port setup of the port specified by the argument port
+        returns the "port setup" string as specifyed by Koukaam"""
         return self.__sendRequest("port setup " + str(port+1))
     
     def setPortPower(self,port,switchOn=False):
+        """setPortPower(port,switchOn=False): method to set the power status of the port specified by the argument port to the bool argument switchOn
+        returns nothing"""
         # the type conversion of switchOn ensures that the values are either "0" or "1":
         self.__sendRequest("port " + str(port) + " " + str(int(bool(int(switchOn)))) )
     
