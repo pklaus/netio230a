@@ -85,12 +85,15 @@ class netio230a(object):
             return False
         # The answer should be in the form     "100 HELLO E675DDA5"
         # where the last eight letters are random hexcode used to hash the password
-        if re.search("^100 HELLO [0-9A-F]{8}\r\n$", data) == None and re.search("^100 HELLO [0-9A-F]{8} - KSHELL V1.1\r\n$", data) == None  :  # 2nd statement for FW version 2.30
+        if re.search("^100 HELLO [0-9A-F]{8}\r\n$", data) == None and \
+           re.search("^100 HELLO [0-9A-F]{8} - KSHELL V1.1\r\n$", data) == None and \
+           re.search("^100 HELLO [0-9A-F]{8} - KSHELL V1.2\r\n$", data) == None  :
             raise NameError("Error while connecting: Not received a \"100 HELLO ... signal from the NET-IO 230A")
         if self.__secureLogin:
             m = hashlib.md5()
             data = data.replace("100 HELLO ", "")
             data = data.replace(" - KSHELL V1.1", "") # for FW version 2.30
+            data = data.replace(" - KSHELL V1.2", "") # for FW version 2.30
             netioHash = data.replace("\r\n", "")
             m.update(self.__username + self.__password + netioHash)
             loginString = "clogin " + self.__username + " " + m.hexdigest() + "\n"
