@@ -42,7 +42,7 @@ import hashlib
 # for RegularExpressions:
 import re
 ## for debugging (set debug mark with pdb.set_trace() )
-import pdb
+#import pdb
 # for math.ceil()
 import math
 # for shlex.shlex() (to parse answers from the NETIO 230A)
@@ -134,8 +134,9 @@ class netio230a(object):
     
     # this command is operation-safe: it does not switch the ports on/off during reboot of the NETIO 230A
     def reboot(self):
-        self.__sendRequest("reboot",False)
-        self.disconnect()
+        response = self.__sendRequest("reboot",False)
+        if re.search("^120 Rebooting", response) != None:
+            time.sleep(.05) # no reboot if disconnecting too soon
     
     def getWatchdogSettings(self,port):
         return self.__sendRequest("port wd " + str(port))
