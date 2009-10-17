@@ -53,6 +53,8 @@ import time
 #from datetime import date
 from datetime import datetime
 
+TELNET_LINE_ENDING = "\r\n"
+
 class netio230a(object):
 
     def __init__(self, host, username, password, secureLogin=False, customPort=23):
@@ -85,16 +87,16 @@ class netio230a(object):
             return False
         # The answer should be in the form     "100 HELLO E675DDA5"
         # where the last eight letters are random hexcode used to hash the password
-        if re.search("^100 HELLO [0-9A-F]{8}\r\n$", data) == None and \
-           re.search("^100 HELLO [0-9A-F]{8} - KSHELL V1.1\r\n$", data) == None and \
-           re.search("^100 HELLO [0-9A-F]{8} - KSHELL V1.2\r\n$", data) == None  :
+        if re.search("^100 HELLO [0-9A-F]{8}"+TELNET_LINE_ENDING+"$", data) == None and \
+           re.search("^100 HELLO [0-9A-F]{8} - KSHELL V1.1"+TELNET_LINE_ENDING+"$", data) == None and \
+           re.search("^100 HELLO [0-9A-F]{8} - KSHELL V1.2"+TELNET_LINE_ENDING+"$", data) == None  :
             raise NameError("Error while connecting: Not received a \"100 HELLO ... signal from the NET-IO 230A")
         if self.__secureLogin:
             m = hashlib.md5()
             data = data.replace("100 HELLO ", "")
             data = data.replace(" - KSHELL V1.1", "") # for FW version 2.30
             data = data.replace(" - KSHELL V1.2", "") # for FW version 2.30
-            netioHash = data.replace("\r\n", "")
+            netioHash = data.replace(TELNET_LINE_ENDING, "")
             m.update(self.__username + self.__password + netioHash)
             loginString = "clogin " + self.__username + " " + m.hexdigest() + "\n"
             # log in using the hashed password
@@ -105,7 +107,7 @@ class netio230a(object):
         # wait for the answer
         data = self.__s.recv(self.__bufsize)
         # check the answer for errors
-        if re.search("^250 OK\r\n$", data) == None :
+        if re.search("^250 OK"+TELNET_LINE_ENDING+"$", data) == None :
             raise NameError("Error while connecting: Login failed; response from NET-IO 230A is:  " + data)
 
     def getPortList(self):
@@ -223,7 +225,7 @@ class netio230a(object):
             raise NameError("Error while sending request: " + request + "\nresponse from NET-IO 230A is:  " + data)
             return None
         else:
-            return data.replace("250 ","").replace("\r\n","")
+            return data.replace("250 ","").replace(TELNET_LINE_ENDING,"")
     
     def disconnect(self):
 	    # close the socket:
