@@ -33,11 +33,12 @@ import sys
 
 host = "192.168.1.2"
 pw = "your choosen password"
+port = 23
 
 
 def main():
     try:
-        netio = netio230a.netio230a(host, "admin", pw, True)
+        netio = netio230a.netio230a(host, "admin", pw, True, port)
     except StandardError:
         print("could not connect")
         sys.exit(1)
