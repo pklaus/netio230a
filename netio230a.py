@@ -93,10 +93,10 @@ class netio230a(object):
             errno, errstr = sys.exc_info()[:2]
             if errno == socket.timeout:
                 raise NameError("Timeout while connecting to " + self.__host)
-                #print "There was a timeout"
+                #print("There was a timeout")
             else:
                 raise NameError("No connection to endpoint " + self.__host)
-                #print "There was some other socket error"
+                #print("There was some other socket error")
             return False
         # The answer should be in the form     "100 HELLO E675DDA5"
         # where the last eight letters are random hexcode used to hash the password
@@ -204,11 +204,19 @@ class netio230a(object):
     def setSystemTime(self,dt):
         self.__sendRequest("system time " + dt.strftime("%Y/%m/%d,%H:%M:%S") )
     def getSystemTime(self):
-        return self.__sendRequest("system time")
+        """getSystemTime() returns a datetime object"""
+        formatedTimestring = self.__sendRequest("system time")
+        date = formatedTimestring.partition(",")[0].split("/")
+        int(date)
+        time = formatedTimestring.partition(",")[0].split(":")
+        int(time)
+        return datetime.datetime(date[0], date[1], date[2], time[0], time[1], time[2])
     
     def getSystemTimezone(self):
+        """getSystemTimezone() returns the timezone offset from UTC in hours of the NETIO-230A."""
         return float(int(self.__sendRequest("system timezone")))/3600.0
     def setSystemTimezone(self,hoursOffset):
+        """setSystemTimezone(hoursOffset) sets the timezone offset from UTC in hours of the NETIO-230A."""
         self.__sendRequest("system timezone " + str(math.ceil(hoursOffset*3600.0)))
     
     def setPort(self,number,port):
