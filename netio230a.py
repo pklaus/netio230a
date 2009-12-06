@@ -207,10 +207,8 @@ class netio230a(object):
         """getSystemTime() returns a datetime object"""
         formatedTimestring = self.__sendRequest("system time")
         date = formatedTimestring.partition(",")[0].split("/")
-        int(date)
-        time = formatedTimestring.partition(",")[0].split(":")
-        int(time)
-        return datetime.datetime(date[0], date[1], date[2], time[0], time[1], time[2])
+        time = formatedTimestring.partition(",")[2].split(":")
+        return datetime(int(date[0]), int(date[1]), int(date[2]), int(time[0]), int(time[1]), int(time[2]))
     
     def getSystemTimezone(self):
         """getSystemTimezone() returns the timezone offset from UTC in hours of the NETIO-230A."""

@@ -32,6 +32,8 @@ import pdb
 import netio230a
 
 host = "192.168.1.2"
+port = 1234
+username = "admin"
 pw = "your choosen password"
   
 class netio230aGUI:
@@ -66,7 +68,7 @@ class netio230aGUI:
             self.__updateSystemSetup()
         elif page_num == 2:
             try:
-                netio = netio230a.netio230a(host, "admin", pw, True)
+                netio = netio230a.netio230a(host, username, pw, True, port)
             except StandardError:
                 print("could not connect")
                 return
@@ -84,7 +86,7 @@ class netio230aGUI:
 
     def __updatePortStatus(self):
         try:
-            netio = netio230a.netio230a(host, "admin", pw, True)
+            netio = netio230a.netio230a(host, username, pw, True, port)
         except StandardError:
             print("could not connect")
             return
@@ -98,13 +100,13 @@ class netio230aGUI:
     
     def __updateSystemSetup(self):
         try:
-            netio = netio230a.netio230a(host, "admin", pw, True)
+            netio = netio230a.netio230a(host, username, pw, True, port)
         except StandardError:
             print("could not connect")
             return
         deviceAlias = netio.getDeviceAlias()
         version = netio.getFirmwareVersion()
-        systemTime = netio.getSystemTime()
+        systemTime = netio.getSystemTime().isoformat(" ")
         timezoneOffset = netio.getSystemTimezone()
         sntpSettings = netio.getSntpSettings()
         netio = None
@@ -129,7 +131,7 @@ class netio230aGUI:
     
     def __setPort(self,portNr,portOn=True):
         try:
-            netio = netio230a.netio230a(host, "admin", pw, True)
+            netio = netio230a.netio230a(host, username, pw, True, port)
         except StandardError:
             print("could not connect")
             return
