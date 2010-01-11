@@ -233,7 +233,7 @@ class netio230a(object):
         ports = []
         powerOnStatus = self.getPortList()
         for i in range(4):
-            status_splitter = shlex.shlex(self.getPortSetup(i), posix=True)
+            status_splitter = shlex.shlex(self.getPortSetup(i).encode('ascii'), posix=True)
             status_splitter.whitespace_split = True
             ports.append( list(status_splitter) )
             self.__ports[i].setName(ports[i][0])
