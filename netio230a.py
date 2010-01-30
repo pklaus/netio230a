@@ -42,7 +42,7 @@ import hashlib
 # for RegularExpressions:
 import re
 ## for debugging (set debug mark with pdb.set_trace() )
-import pdb
+#import pdb
 # for math.ceil()
 import math
 # for shlex.shlex() (to parse answers from the NETIO 230A)
@@ -53,21 +53,23 @@ import time
 #from datetime import date
 from datetime import datetime
 
+TELNET_LINE_ENDING = "\r\n"
+TELNET_SOCKET_TIMEOUT = 5
+
 class netio230a(object):
     """netio230a is the basic class that you want to instantiate when communicating
     with the Koukaam NETIO 230A. It can handle the raw TCP socket connection and
     helps you send the commands to switch on / off ports etc."""
     
     def __init__(self, host, username, password, secureLogin=False, customPort=23):
-        """construct this class by giving:
+        """netio230a constructor: set up an instance of netio230a by giving:
         
-        the host to connect to as a string
-        the username as a string
-        the password of the NETIO 230A as a string
-        secureLogin (bool) if md5 hashed password will be transmitted
-        customPort (int) if you changed the port on your NETIO 230A.
-        
-        Returns an object of class type netio230a.netio230a"""
+            host        the hostname of the NETIO-230A (may be in the form of something.dyndns.org or 192.168.1.2)
+            username    the username you want to use to authenticate against the NETIO-230A
+            password    the password (that belongs to username)
+            secureLogin bool value specifying whether to use a hashed or a cleartext login. True is hightly recommended for insecure networks!
+            customPort  integer specifying which port to connect to, defaul: 23 (NETIO-230A must be reachable via KSHELL/telnet via hostname:customPort)
+        """
         self.__host = host
         self.__username = username
         self.__password = password
@@ -77,11 +79,13 @@ class netio230a(object):
         self.__ports = [ port() , port() , port() , port() ]
         # create a TCP/IP socket
         self.__s = socket(AF_INET, SOCK_STREAM)
-        self.__s.settimeout(6)
+        self.__s.settimeout(TELNET_SOCKET_TIMEOUT)
         self.__login()
  
     def __login(self):
-        """Login to the server using the credentials given to the constructor."""
+        """Login to the server using the credentials given to the constructor.
+           Note that this is a private method called by the constructor
+           (so all connection details are set already)."""
         # connect to the server
         try:
             self.__s.connect((self.__host, self.__port))
@@ -91,47 +95,53 @@ class netio230a(object):
             errno, errstr = sys.exc_info()[:2]
             if errno == socket.timeout:
                 raise NameError("Timeout while connecting to " + self.__host)
-                #print "There was a timeout"
+                #print("There was a timeout")
             else:
                 raise NameError("No connection to endpoint " + self.__host)
-                #print "There was some other socket error"
+                #print("There was some other socket error")
             return False
         # The answer should be in the form     "100 HELLO E675DDA5"
         # where the last eight letters are random hexcode used to hash the password
-        if re.search("^100 HELLO [0-9A-F]{8}\r\n$", data) == None and re.search("^100 HELLO [0-9A-F]{8} - KSHELL V1.1\r\n$", data) == None  :  # 2nd statement for FW version 2.30
+        if self.__reSearch("^100 HELLO [0-9A-F]{8}"+TELNET_LINE_ENDING+"$", data) == None and \
+           self.__reSearch("^100 HELLO [0-9A-F]{8} - KSHELL V1.1"+TELNET_LINE_ENDING+"$", data) == None and \
+           self.__reSearch("^100 HELLO [0-9A-F]{8} - KSHELL V1.2"+TELNET_LINE_ENDING+"$", data) == None  :
             raise NameError("Error while connecting: Not received a \"100 HELLO ... signal from the NET-IO 230A")
         if self.__secureLogin:
             m = hashlib.md5()
-            data = data.replace("100 HELLO ", "")
-            data = data.replace(" - KSHELL V1.1", "") # for FW version 2.30
-            netioHash = data.replace("\r\n", "")
-            m.update(self.__username + self.__password + netioHash)
+            hash=str(data).split(" ")[2]
+            msg=self.__username + self.__password + hash
+            m.update(msg.encode("ascii"))
             loginString = "clogin " + self.__username + " " + m.hexdigest() + "\n"
             # log in using the hashed password
-            self.__s.send(loginString)
+            self.__s.send(loginString.encode("ascii"))
         else:
             # log in however sending the password in cleartext
             self.__s.send("login " + self.__username + " " + self.__password + "\n")
         # wait for the answer
         data = self.__s.recv(self.__bufsize)
         # check the answer for errors
-        if re.search("^250 OK\r\n$", data) == None :
+        if self.__reSearch("^250 OK"+TELNET_LINE_ENDING+"$", data) == None :
             raise NameError("Error while connecting: Login failed; response from NET-IO 230A is:  " + data)
 
+    def __reSearch(self, regexp, data):
+        return re.search(regexp.encode("ascii"), data)
+
     def getPortList(self):
-        """Sends request to the NETIO 230A to request the port status.
+        """Sends request to the NETIO 230A to ask for the port status.
         
-        Returns string specifying which ports are switched on/off.
+        Returns string (4 chars long) specifying which ports are switched on/off.
+        Each char is representing the power status of one port: 0/1
         For example: "1001" (port 1 and port 4 are on, all others off)"""
         return self.__sendRequest("port list")
     
     def getPortSetup(self,port):
-        """Sends request to the NETIO 230A to request the setup of a port given as a parameter.
-        
-        Returns the status as a string in the format: ..."""
+        """Sends request to the NETIO 230A to ask for the setup of the port given as parameter.
+        returns the "port setup" string as specifyed by Koukaam"""
         return self.__sendRequest("port setup " + str(port+1))
     
     def setPortPower(self,port,switchOn=False):
+        """setPortPower(port,switchOn=False): method to set the power status of the port specified by the argument port to the bool argument switchOn
+        returns nothing"""
         # the type conversion of switchOn ensures that the values are either "0" or "1":
         self.__sendRequest("port " + str(port) + " " + str(int(bool(int(switchOn)))) )
     
@@ -151,8 +161,9 @@ class netio230a(object):
     
     # this command is operation-safe: it does not switch the ports on/off during reboot of the NETIO 230A
     def reboot(self):
-        self.__sendRequest("reboot",False)
-        self.disconnect()
+        response = self.__sendRequest("reboot",False)
+        if re.search("^120 Rebooting", response) != None:
+            time.sleep(.05) # no reboot if disconnecting too soon
     
     def getWatchdogSettings(self,port):
         return self.__sendRequest("port wd " + str(port))
@@ -199,11 +210,17 @@ class netio230a(object):
     def setSystemTime(self,dt):
         self.__sendRequest("system time " + dt.strftime("%Y/%m/%d,%H:%M:%S") )
     def getSystemTime(self):
-        return self.__sendRequest("system time")
+        """getSystemTime() returns a datetime object"""
+        formatedTimestring = self.__sendRequest("system time")
+        date = formatedTimestring.partition(",")[0].split("/")
+        time = formatedTimestring.partition(",")[2].split(":")
+        return datetime(int(date[0]), int(date[1]), int(date[2]), int(time[0]), int(time[1]), int(time[2]))
     
     def getSystemTimezone(self):
+        """getSystemTimezone() returns the timezone offset from UTC in hours of the NETIO-230A."""
         return float(int(self.__sendRequest("system timezone")))/3600.0
     def setSystemTimezone(self,hoursOffset):
+        """setSystemTimezone(hoursOffset) sets the timezone offset from UTC in hours of the NETIO-230A."""
         self.__sendRequest("system timezone " + str(math.ceil(hoursOffset*3600.0)))
     
     def setPort(self,number,port):
@@ -221,7 +238,7 @@ class netio230a(object):
         ports = []
         powerOnStatus = self.getPortList()
         for i in range(4):
-            status_splitter = shlex.shlex(self.getPortSetup(i), posix=True)
+            status_splitter = shlex.shlex(self.getPortSetup(i).encode('ascii'), posix=True)
             status_splitter.whitespace_split = True
             ports.append( list(status_splitter) )
             self.__ports[i].setName(ports[i][0])
@@ -233,13 +250,14 @@ class netio230a(object):
     
     # generic method to send requests to the NET-IO 230A and checking the response
     def __sendRequest(self,request,complainIfAnswerNot250=True):
-        self.__s.send(request+"\n")
+        self.__s.send(request.encode("ascii")+b"\n")
         data = self.__s.recv(self.__bufsize)
-        if re.search("^250 ", data) == None and complainIfAnswerNot250:
+        if self.__reSearch("^250 ", data) == None and complainIfAnswerNot250:
             raise NameError("Error while sending request: " + request + "\nresponse from NET-IO 230A is:  " + data)
             return None
         else:
-            return data.replace("250 ","").replace("\r\n","")
+            data=data.decode("ascii")
+            return data.replace("250 ","").replace(TELNET_LINE_ENDING,"")
     
     def disconnect(self):
 	    # close the socket:
