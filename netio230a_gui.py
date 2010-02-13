@@ -41,13 +41,13 @@ class netio230aGUI:
     
     def __init__(self):
         fullpath = os.path.abspath(os.path.dirname(sys.argv[0]))
-        builder = gtk.Builder()
-        builder.add_from_file(fullpath + "/resources/netio230aGUI.glade") 
+        self.builder = gtk.Builder()
+        self.builder.add_from_file(fullpath + "/resources/netio230aGUI.glade") 
         
-        self.window = builder.get_object("mainWindow")
-        self.about_dialog = builder.get_object( "aboutDialog" )
+        self.window = self.builder.get_object("mainWindow")
+        self.about_dialog = self.builder.get_object( "aboutDialog" )
         
-        builder.connect_signals(self)
+        self.builder.connect_signals(self)
         
         self.__updatePowerSocketStatus()
     
@@ -74,10 +74,9 @@ class netio230aGUI:
                 return
             power_sockets = netio.getAllPowerSockets()
             netio = None
-            self.window.get_children()[0].get_children()[1].get_children()[2].get_children()[0].get_children()[1].set_active(power_sockets[0].getPowerOn())
-            self.window.get_children()[0].get_children()[1].get_children()[2].get_children()[1].get_children()[1].set_active(power_sockets[1].getPowerOn())
-            self.window.get_children()[0].get_children()[1].get_children()[2].get_children()[2].get_children()[1].set_active(power_sockets[2].getPowerOn())
-            self.window.get_children()[0].get_children()[1].get_children()[2].get_children()[3].get_children()[1].set_active(power_sockets[3].getPowerOn())
+            for i in range(4):
+                ## shorter form with builder.get_object(). cf. <http://stackoverflow.com/questions/2072976/access-to-widget-in-gtk>
+                self.builder.get_object("socket"+str(i+1)).set_active(power_sockets[i].getPowerOn())
         else:
             return
     
@@ -94,7 +93,7 @@ class netio230aGUI:
         netio = None
         tb = gtk.TextBuffer()
         tb.set_text("power status:\nsocket 1: %s\nsocket 2: %s\nsocket 3: %s\nsocket 4: %s" % (power_sockets[0].getPowerOn(),power_sockets[1].getPowerOn(),power_sockets[2].getPowerOn(),power_sockets[3].getPowerOn()))
-        self.window.get_children()[0].get_children()[1].get_children()[0].get_children()[1].set_buffer( tb )
+        self.builder.get_object("status_output").set_buffer( tb )
     
     
     
@@ -110,11 +109,11 @@ class netio230aGUI:
         timezoneOffset = netio.getSystemTimezone()
         sntpSettings = netio.getSntpSettings()
         netio = None
-        self.window.get_children()[0].get_children()[1].get_children()[1].get_children()[0].get_children()[1].set_text( deviceAlias )
-        self.window.get_children()[0].get_children()[1].get_children()[1].get_children()[1].get_children()[1].set_text( version )
-        self.window.get_children()[0].get_children()[1].get_children()[1].get_children()[2].get_children()[1].set_text( systemTime )
-        self.window.get_children()[0].get_children()[1].get_children()[1].get_children()[3].get_children()[1].set_text( str(timezoneOffset) + " hours" )
-        self.window.get_children()[0].get_children()[1].get_children()[1].get_children()[4].get_children()[1].set_text( sntpSettings )
+        self.builder.get_object("device_name").set_text( deviceAlias )
+        self.builder.get_object("firmware_version").set_text( version )
+        self.builder.get_object("system_time").set_text( systemTime )
+        self.builder.get_object("timezone_offset").set_text( str(timezoneOffset) + " hours" )
+        self.builder.get_object("sntp_settings").set_text( sntpSettings )
     
         
     def cb_switch1On(self, togglebutton):
