@@ -34,7 +34,7 @@ import e32
 
 
 host = "your.dyndns.org"
-port = 23
+tcp_port = 23
 pw = "your chosen password"
 
 appuifw.app.title = u"NETIO 230A"
@@ -44,7 +44,7 @@ app_lock = e32.Ao_lock()
 messagecanvas = appuifw.Text()
 
 try:
-    netio = netio230a.netio230a(host, "admin", pw, True, port)
+    netio = netio230a.netio230a(host, "admin", pw, True, tcp_port)
 except:
     netio=None
     messagecanvas.set(u"could not connect")
@@ -53,35 +53,35 @@ except:
 def exit_key_handler():
     app_lock.signal()
 
-def switchPort():
+def switch_power_socket():
     global netio
-    portToChange = 0
-    while int(portToChange) < 1 or portToChange > 4:
-        portToChange = appuifw.query(u"Port to switch (between 1 and 4):", 'number')
-        if portToChange == None:
+    power_socket_to_change = 0
+    while int(power_socket_to_change) < 1 or power_socket_to_change > 4:
+        power_socket_to_change = appuifw.query(u"Power socket to switch (between 1 and 4):", 'number')
+        if power_socket_to_change == None:
             return
     states = [u"On", u"Off"]
-    state = appuifw.popup_menu(states, u"new status for port %s:"% portToChange)
-    if portToChange == None or state == None:
+    state = appuifw.popup_menu(states, u"new status for power socket %s:"% power_socket_to_change)
+    if power_socket_to_change == None or state == None:
         return
     if state == 1:
-        portOn = False
+        power_socket_on = False
     elif state == 0:
-        portOn = True
-    netio.setPortPower(int(portToChange),portOn)
+        power_socket_on = True
+    netio.setPowerSocketPower(int(power_socket_to_change),power_socket_on)
     updateStatus()
 
 #def subitem1():
 #    messagecanvas.set(u'Now first subitem was selected')
 
-def updateStatus():
+def update_status():
     global netio
-    portPower = netio.getPortList()
+    power_sockets = netio.getPowerSocketList()
     messagecanvas.set( u"" )
     messagecanvas.style = appuifw.STYLE_BOLD
     messagecanvas.add(u"Power Status:\n\n")
     messagecanvas.style = 0
-    messagecanvas.add(u"port 1: %s\nport 2: %s\nport 3: %s\nport 4: %s" % (portPower[0],portPower[1],portPower[2],portPower[3] ))
+    messagecanvas.add(u"port 1: %s\nport 2: %s\nport 3: %s\nport 4: %s" % (power_sockets[0],power_sockets[1],power_sockets[2],power_sockets[3] ))
 
 def main():
     global netio
@@ -96,7 +96,7 @@ def main():
         return
     
     #appuifw.app.menu = [(u"Submenu 1", ((u"sub item 1", subitem1), (u"sub item 2", subitem2))), (u"Exit", exit_key_handler)]
-    appuifw.app.menu = [(u"Switch Port", switchPort), (u"Refresh Status", updateStatus), (u"Exit", exit_key_handler)]
+    appuifw.app.menu = [(u"Switch Power Socket", switch_power_socket), (u"Refresh Status", update_status), (u"Exit", exit_key_handler)]
     updateStatus()
     
     appuifw.app.exit_key_handler = exit_key_handler

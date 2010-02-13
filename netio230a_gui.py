@@ -32,7 +32,7 @@ import pdb
 import netio230a
 
 host = "192.168.1.2"
-port = 1234
+tcp_port = 1234
 username = "admin"
 pw = "your choosen password"
   
@@ -49,7 +49,7 @@ class netio230aGUI:
         
         builder.connect_signals(self)
         
-        self.__updatePortStatus()
+        self.__updatePowerSocketStatus()
     
     def gtk_main_quit( self, window ):
         gtk.main_quit()
@@ -63,44 +63,44 @@ class netio230aGUI:
         
     def cb_updateDisplay(self, notebook, page, page_num):
         if page_num == 0:
-            self.__updatePortStatus()
+            self.__updatePowerSocketStatus()
         elif page_num == 1:
             self.__updateSystemSetup()
         elif page_num == 2:
             try:
-                netio = netio230a.netio230a(host, username, pw, True, port)
+                netio = netio230a.netio230a(host, username, pw, True, tcp_port)
             except StandardError:
                 print("could not connect")
                 return
-            ports = netio.getAllPorts()
+            power_sockets = netio.getAllPowerSockets()
             netio = None
-            self.window.get_children()[0].get_children()[1].get_children()[2].get_children()[0].get_children()[1].set_active(ports[0].getPowerOn())
-            self.window.get_children()[0].get_children()[1].get_children()[2].get_children()[1].get_children()[1].set_active(ports[1].getPowerOn())
-            self.window.get_children()[0].get_children()[1].get_children()[2].get_children()[2].get_children()[1].set_active(ports[2].getPowerOn())
-            self.window.get_children()[0].get_children()[1].get_children()[2].get_children()[3].get_children()[1].set_active(ports[3].getPowerOn())
+            self.window.get_children()[0].get_children()[1].get_children()[2].get_children()[0].get_children()[1].set_active(power_sockets[0].getPowerOn())
+            self.window.get_children()[0].get_children()[1].get_children()[2].get_children()[1].get_children()[1].set_active(power_sockets[1].getPowerOn())
+            self.window.get_children()[0].get_children()[1].get_children()[2].get_children()[2].get_children()[1].set_active(power_sockets[2].getPowerOn())
+            self.window.get_children()[0].get_children()[1].get_children()[2].get_children()[3].get_children()[1].set_active(power_sockets[3].getPowerOn())
         else:
             return
     
     def cb_refresh(self, button):
-        self.__updatePortStatus()
+        self.__updatePowerSocketStatus()
 
-    def __updatePortStatus(self):
+    def __updatePowerSocketStatus(self):
         try:
-            netio = netio230a.netio230a(host, username, pw, True, port)
+            netio = netio230a.netio230a(host, username, pw, True, tcp_port)
         except StandardError:
             print("could not connect")
             return
-        ports = netio.getAllPorts()
+        power_sockets = netio.getAllPowerSockets()
         netio = None
         tb = gtk.TextBuffer()
-        tb.set_text("power status:\nport 1: %s\nport 2: %s\nport 3: %s\nport 4: %s" % (ports[0].getPowerOn(),ports[1].getPowerOn(),ports[2].getPowerOn(),ports[3].getPowerOn()))
+        tb.set_text("power status:\nsocket 1: %s\nsocket 2: %s\nsocket 3: %s\nsocket 4: %s" % (power_sockets[0].getPowerOn(),power_sockets[1].getPowerOn(),power_sockets[2].getPowerOn(),power_sockets[3].getPowerOn()))
         self.window.get_children()[0].get_children()[1].get_children()[0].get_children()[1].set_buffer( tb )
     
     
     
     def __updateSystemSetup(self):
         try:
-            netio = netio230a.netio230a(host, username, pw, True, port)
+            netio = netio230a.netio230a(host, username, pw, True, tcp_port)
         except StandardError:
             print("could not connect")
             return
@@ -118,24 +118,24 @@ class netio230aGUI:
     
         
     def cb_switch1On(self, togglebutton):
-        self.__setPort(1,togglebutton.get_active())
+        self.__setPowerSocket(1,togglebutton.get_active())
     
     def cb_switch2On(self, togglebutton):
-        self.__setPort(2,togglebutton.get_active())
+        self.__setPowerSocket(2,togglebutton.get_active())
     
     def cb_switch3On(self, togglebutton):
-        self.__setPort(3,togglebutton.get_active())
+        self.__setPowerSocket(3,togglebutton.get_active())
     
     def cb_switch4On(self, togglebutton):
-        self.__setPort(4,togglebutton.get_active())
+        self.__setPowerSocket(4,togglebutton.get_active())
     
-    def __setPort(self,portNr,portOn=True):
+    def __setPowerSocket(self,socket_nr,socket_power=True):
         try:
-            netio = netio230a.netio230a(host, username, pw, True, port)
+            netio = netio230a.netio230a(host, username, pw, True, tcp_port)
         except StandardError:
             print("could not connect")
             return
-        netio.setPortPower(portNr,portOn)
+        netio.setPowerSocketPower(socket_nr,socket_power)
         netio = None
     
     

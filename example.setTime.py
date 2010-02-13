@@ -33,19 +33,23 @@ from datetime import datetime
 ### for timedelta()
 from datetime import timedelta
 
+## for time.sleep()
+import time
+
 host = "192.168.1.2"
 pw = "your choosen password"
-port = 23
+tcp_port = 23
 
 
 def main():
     try:
-        netio = netio230a.netio230a(host, "admin", pw, True, port)
+        netio = netio230a.netio230a(host, "admin", pw, True, tcp_port)
     except StandardError:
         print("could not connect")
         sys.exit(1)
     systemTime = netio.getSystemTime()
-    netio.setSystemTime(datetime.now()+timedelta(days=1))
+    netio.setSystemTime(datetime.now()+timedelta(seconds=20))
+    time.sleep(0.9) # we have to wait (the new time has to be set first, which takes approx. 0.75 seconds)
     newSystemTime = netio.getSystemTime()
     
     netio = None

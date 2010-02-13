@@ -27,44 +27,89 @@
 import netio230a
 ## for sys.exit(1)
 import sys
+EXIT_SUCCESS=0
+EXIT_FAILURE=1
 
 ## for optparse.OptionParser()
 import optparse
 
-
+NOT_SET="--not set--"
 
 def main():
-    p = optparse.OptionParser()
+    #p = optparse.OptionParser(usage="usage: %prog [options] -i[source] -o[target]",add_help_option=False)
+    p = optparse.OptionParser(add_help_option=False)
     
-    p.add_option('--password', '-w', default="not set")
-    p.add_option('--host', '-n', default="not set")
-    p.add_option('--username', '-u', default="admin")
-    p.add_option('--port', '-p', default="world")
+    p.add_option('-?', action="store_true", help="show this help message and exit", dest="show_help")
+    p.add_option('--host', '-h', default=NOT_SET)
+    p.add_option('--port', '-p', default="1234", help="TCP port (defaults to 1234)")
+    p.add_option('--username', '-u', default="admin", help="username to use for login (defaults to admin)")
+    p.add_option('--password', '-w', default="", help="password to use for login (will ask if left empty)")
+    p.add_option('--socket', '-s', default=NOT_SET, metavar="SOCKET#", help="socketnumber (1-4) to switch on/off")
     p.add_option("--on", action="store_true", dest="switchOn", help='switch on when --on set, off if omitted')
     
     options, arguments = p.parse_args()
     
+    if options.host == NOT_SET and options.socket == NOT_SET:
+        options.show_help = True
+    
+    if options.show_help:
+        p.print_help()
+        sys.exit(1)
+    
     if options.switchOn == None:
         options.switchOn = False
     
-    if options.password is not "not set" and options.host is not "not set":
+    if options.host is NOT_SET:
+        netio230a_devices = netio230a.get_all_detected_devices()
+        if len(netio230a_devices) == 0:
+            p.error("Please specify a host you want to connect to")      
+        elif len(netio230a_devices) == 1:
+            deviceName = netio230a_devices[0][0]
+            ip = netio230a_devices[0][1]
+            ip = "%s.%s.%s.%s" % (ip[0], ip[1], ip[2], ip[3])
+            print "We discovered a single NETIO-230A device on the LAN: (%s,%s)" % (deviceName, ip)
+            print "Selecting this one as host."
+            options.host = ip
+        else:
+            print netio230a_devices
+            p.error("Please specify a host you want to connect to")
     
-        try:
-            netio = netio230a.netio230a(options.host, options.username, options.password, True)
-        except StandardError:
-            print("could not connect")
-            sys.exit(1)
-        netio.setPortPower(options.port, int(options.switchOn) )
-        
-        netio = None
-        
-        # print response
-        print "\n--------- successfully interfaced the Koukaam NETIO 230A ---------"
-        print "set port %s to: \"%s\"" % (options.port, int(options.switchOn))
-        print "---------------------------------------------------------------- \n"
-        
-    else:
-        p.print_help()
+    if options.socket is "not set":
+        p.error("Please specify the socket you want to switch.")
+    
+    try:
+        options.port = int(options.port)
+    except StandardError:
+        p.error("Please specify the TCP port to connect to as an integer value.")
+    
+    try:
+        options.socket = int(options.socket)
+    except StandardError:
+        p.error("Please specify the socket to switch as an integer value.")
+    
+    if len(options.password) == 0:
+        options.password = raw_input("Please give a password (user "+options.username+"): ")
+    
+    try:
+        netio = netio230a.netio230a(options.host, options.username, options.password, True, options.port)
+    except NameError, error:
+        print("Could not connect. "+str(error))
+        sys.exit(EXIT_FAILURE)
+    #except StandardError, error:
+    #    print("Could not connect. Please inform the programmer of this error. "+str(error))
+    #    sys.exit(EXIT_FAILURE)
+    try:
+        netio.setPowerSocketPower(options.socket, int(options.switchOn))
+    except StandardError, ne:
+        print("Could not switch socket power. "+str(ne))
+    
+    netio = None
+    
+    # print response
+    print "\n--------- successfully interfaced the Koukaam NETIO 230A ---------"
+    print "set socket %s to: \"%s\"" % (options.socket, int(options.switchOn))
+    print "---------------------------------------------------------------- \n"
+    sys.exit(EXIT_SUCCESS)
 
 
 if __name__ == '__main__':

@@ -27,16 +27,16 @@
 import netio230a
 ## for sys.exit(1)
 import sys
-port = 23
 
 
 host = "192.168.1.2"
 pw = "your choosen password"
+tcp_port = 23
 
 
 def main():
     try:
-        netio = netio230a.netio230a(host, "admin", pw, True, port)
+        netio = netio230a.netio230a(host, "admin", pw, True, tcp_port)
     except StandardError:
         print("could not connect")
         sys.exit(1)

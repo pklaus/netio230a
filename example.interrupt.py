@@ -31,23 +31,23 @@ import sys
 
 host = "192.168.1.2"
 pw = "your choosen password"
-port = 23
+tcp_port = 23
 
-interruptPort=2
+interruptPowerSocket=2
 
 def main():
     try:
-        netio = netio230a.netio230a(host, "admin", pw, True,port)
+        netio = netio230a.netio230a(host, "admin", pw, True,tcp_port)
     except StandardError:
         print("could not connect")
         sys.exit(1)
-    netio.setPortTempInterrupt(interruptPort)
+    netio.setPowerSocketTempInterrupt(interruptPowerSocket)
     
     netio = None
     
     # print response
     print "\n--------- successfully queried the Koukaam NETIO 230A ---------"
-    print "temporarily interrupted port %s" % (interruptPort)
+    print "temporarily interrupted power socket %s" % (interruptPowerSocket)
     print "--------------------------------------------------------------- \n"
     
 
