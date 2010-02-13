@@ -47,7 +47,7 @@ import re
 import math
 # for shlex.shlex() (to parse answers from the NETIO 230A)
 import shlex
-# for errno codes
+# for errno codes (cf. <http://docs.python.org/library/errno.html>)
 import errno
 
 import time
@@ -400,13 +400,14 @@ def discover_netio230a_devices(callback_for_found_devices):
         UDPoutsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # to allow broadcast communication:
         UDPoutsock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        host = format_ip(interface[1])
+        host = socket.inet_ntoa(interface[1])
         UDPoutsock.bind((host, 0))
         # send UDP broadcast:
         UDPoutsock.sendto(DISCOVER_REQUEST, dest)
     myUDPintsockThread.join()
 
-# http://code.activestate.com/recipes/439093/#c1import socket
+## http://code.activestate.com/recipes/439093/#c1
+# import socket
 import fcntl
 import struct
 import array
@@ -427,13 +428,6 @@ def all_interfaces():
         ip   = namestr[i+20:i+24]
         lst.append((name, ip))
     return lst
-# pretty format an ip address. returns a string like 192.168.0.2
-def format_ip(addr):
-    return str(ord(addr[0])) + '.' + \
-           str(ord(addr[1])) + '.' + \
-           str(ord(addr[2])) + '.' + \
-           str(ord(addr[3]))
-
 
 all_devices=[]
 def device_detected_callback(device):
