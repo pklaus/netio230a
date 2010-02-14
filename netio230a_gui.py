@@ -54,6 +54,7 @@ class DeviceController:
         
         self.builder.connect_signals(self)
         
+        self.__updateLabels()
         self.__updatePowerSocketStatus()
         self.window.show()
     
@@ -105,6 +106,17 @@ class DeviceController:
         tb = gtk.TextBuffer()
         tb.set_text("power status:\nsocket 1: %s\nsocket 2: %s\nsocket 3: %s\nsocket 4: %s" % (power_sockets[0].getPowerOn(),power_sockets[1].getPowerOn(),power_sockets[2].getPowerOn(),power_sockets[3].getPowerOn()))
         self.builder.get_object("status_output").set_buffer( tb )
+    
+    def __updateLabels(self):
+        try:
+            power_sockets = self.netio.getAllPowerSockets()
+        except StandardError, error:
+            print(str(error))
+            return
+        self.netio.disconnect()
+        for i in range(4):
+            label_name = "socket"+str(i+1)+"_label"
+            self.builder.get_object(label_name).set_text(self.builder.get_object(label_name).get_text()+' ("'+power_sockets[i].getName()+'")')
     
     
     
@@ -159,7 +171,6 @@ class ConnectionDetailDialog:
     def run(self):
         self.builder.connect_signals(self)
         return self.dialog.run()
-        
     
     def updateData(self):
         self.__host = self.builder.get_object("host_text").get_text()
@@ -286,7 +297,6 @@ class DeviceSelector:
                         del dl
                         dl = ConnectionDetailDialog(data['host'], data['username'], data['password'], data['tcp_port'])
                         result = dl.run()
-                        print "schon wieder",result
                 
                 dl.dialog.hide()
                 del dl
