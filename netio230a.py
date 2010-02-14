@@ -257,17 +257,25 @@ class netio230a(object):
     
     # generic method to send requests to the NET-IO 230A and checking the response
     def __sendRequest(self,request,complainIfAnswerNot250=True):
-        self.__s.send(request.encode("ascii")+b"\n")
+        try:
+            self.__s.send(request.encode("ascii")+b"\n")
+        except:
+            try:
+                self.__login()
+                self.__s.send(request.encode("ascii")+b"\n")
+            except StandardError,error:
+                raise NameError("no connection possible or other exception: "+str(error))
+        
         data = self.__s.recv(self.__bufsize)
         if self.__reSearch("^250 ", data) == None and complainIfAnswerNot250:
             raise NameError("Error while sending request: " + request + "\nresponse from NET-IO 230A is:  " + data)
-            return None
         else:
             data=data.decode("ascii")
             return data.replace("250 ","").replace(TELNET_LINE_ENDING,"")
     
     def disconnect(self):
-	    # close the socket:
+        # close the socket:
+        self.__sendRequest("quit")
         self.__s.close()
     
     def __del__(self):
@@ -436,6 +444,7 @@ def device_detected_callback(device):
 # if any software module wants to get all found devices with one call (blocking) then this function can be used:
 def get_all_detected_devices():
     global all_devices
+    all_devices = []
     discover_netio230a_devices(device_detected_callback)
     return all_devices
 
