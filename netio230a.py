@@ -79,6 +79,9 @@ class netio230a(object):
         self.__tcp_port = customTCPPort
         self.__bufsize = 1024
         self.__power_sockets = [ PowerSocket() for i in range(4) ]
+        self.__create_socket_and_login()
+    
+    def __create_socket_and_login(self):
         # create a TCP/IP socket
         self.__s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.__s.settimeout(TELNET_SOCKET_TIMEOUT)
@@ -261,7 +264,7 @@ class netio230a(object):
             self.__s.send(request.encode("ascii")+b"\n")
         except:
             try:
-                self.__login()
+                self.__create_socket_and_login()
                 self.__s.send(request.encode("ascii")+b"\n")
             except StandardError,error:
                 raise NameError("no connection possible or other exception: "+str(error))
@@ -275,7 +278,7 @@ class netio230a(object):
     
     def disconnect(self):
         # close the socket:
-        self.__sendRequest("quit")
+        self.__sendRequest("quit",False)
         self.__s.close()
     
     def __del__(self):

@@ -31,15 +31,21 @@ import gtk
 import pdb
 import netio230a
 
-host = "192.168.1.2"
-tcp_port = 1234
-username = "admin"
-pw = "your choosen password"
   
 class netio230aGUI:
     
     
-    def __init__(self):
+    def __init__(self,host,tcp_port):
+        
+        self.host = host
+        self.tcp_port = tcp_port
+        self.username = "admin"
+        self.pw = "your choosen password"
+        try:
+            self.netio = netio230a.netio230a(self.host, self.username, self.pw, True, self.tcp_port)
+        except StandardError, error:
+            print str(error)
+        
         fullpath = os.path.abspath(os.path.dirname(sys.argv[0]))
         self.builder = gtk.Builder()
         self.builder.add_from_file(fullpath + "/resources/netio230aGUI.glade") 
@@ -68,11 +74,11 @@ class netio230aGUI:
             self.__updateSystemSetup()
         elif page_num == 2:
             try:
-                netio = netio230a.netio230a(host, username, pw, True, tcp_port)
+                power_sockets = self.netio.getAllPowerSockets()
             except StandardError:
                 print("could not connect")
                 return
-            power_sockets = netio.getAllPowerSockets()
+            
             netio = None
             for i in range(4):
                 ## shorter form with builder.get_object(). cf. <http://stackoverflow.com/questions/2072976/access-to-widget-in-gtk>
@@ -85,12 +91,11 @@ class netio230aGUI:
 
     def __updatePowerSocketStatus(self):
         try:
-            netio = netio230a.netio230a(host, username, pw, True, tcp_port)
-        except StandardError:
-            print("could not connect")
+            power_sockets = self.netio.getAllPowerSockets()
+        except StandardError, error:
+            print(str(error))
             return
-        power_sockets = netio.getAllPowerSockets()
-        netio = None
+        self.netio.disconnect()
         tb = gtk.TextBuffer()
         tb.set_text("power status:\nsocket 1: %s\nsocket 2: %s\nsocket 3: %s\nsocket 4: %s" % (power_sockets[0].getPowerOn(),power_sockets[1].getPowerOn(),power_sockets[2].getPowerOn(),power_sockets[3].getPowerOn()))
         self.builder.get_object("status_output").set_buffer( tb )
@@ -99,16 +104,15 @@ class netio230aGUI:
     
     def __updateSystemSetup(self):
         try:
-            netio = netio230a.netio230a(host, username, pw, True, tcp_port)
-        except StandardError:
-            print("could not connect")
+            deviceAlias = self.netio.getDeviceAlias()
+            version = self.netio.getFirmwareVersion()
+            systemTime = self.netio.getSystemTime().isoformat(" ")
+            timezoneOffset = self.netio.getSystemTimezone()
+            sntpSettings = self.netio.getSntpSettings()
+        except StandardError, error:
+            print(str(error))
             return
-        deviceAlias = netio.getDeviceAlias()
-        version = netio.getFirmwareVersion()
-        systemTime = netio.getSystemTime().isoformat(" ")
-        timezoneOffset = netio.getSystemTimezone()
-        sntpSettings = netio.getSntpSettings()
-        netio = None
+        self.netio.disconnect()
         self.builder.get_object("device_name").set_text( deviceAlias )
         self.builder.get_object("firmware_version").set_text( version )
         self.builder.get_object("system_time").set_text( systemTime )
@@ -130,17 +134,15 @@ class netio230aGUI:
     
     def __setPowerSocket(self,socket_nr,socket_power=True):
         try:
-            netio = netio230a.netio230a(host, username, pw, True, tcp_port)
-        except StandardError:
-            print("could not connect")
-            return
-        netio.setPowerSocketPower(socket_nr,socket_power)
-        netio = None
+            self.netio.setPowerSocketPower(socket_nr,socket_power)
+        except StandardError, error:
+            print(str(error))
+        self.netio.disconnect()
     
     
     
 if __name__ == "__main__":
-    gui = netio230aGUI()
+    gui = netio230aGUI('192.168.102.4',1234)
     gui.window.show()
     gtk.main()
 
