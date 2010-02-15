@@ -117,10 +117,15 @@ class DeviceController:
             return
         self.netio.disconnect()
         
-        # update checkboxes:
-        for i in range(4):
+        # update checkboxes on this GUI and on the status icon:
+        i = 1
+        new_status = []
+        for power_socket in power_sockets:
             ## shorter form with builder.get_object(). cf. <http://stackoverflow.com/questions/2072976/access-to-widget-in-gtk>
-            self.builder.get_object("socket"+str(i+1)).set_active(power_sockets[i].getPowerOn())
+            self.builder.get_object("socket"+str(i)).set_active(power_socket.getPowerOn())
+            new_status.append([power_socket.getName(),power_socket.getPowerOn()])
+            i += 1
+        self.controller.icon.update_checkboxes(new_status)
         
         # update the status text:
         tb = gtk.TextBuffer()
@@ -176,6 +181,7 @@ class DeviceController:
         except StandardError, error:
             print(str(error))
         self.netio.disconnect()
+        self.updatePowerSocketStatus()
 
 class ConnectionDetailDialog:
     def __init__(self,host='',username='admin',password='',port=1234):
@@ -356,8 +362,73 @@ class DeviceSelector:
 
 class TrayIcon(gtk.StatusIcon):
     # reely adapted from the tracker-applet: <https://labs.codethink.co.uk/index.php/p/tracker/source/tree/master/python/applet/applet.py>
+    # one more resource:
+    # please note that the context menu (just as any other menu in Gnome will not have icons unless you set the gconf key /desktop/gnome/interface/menus_have_icons to true. For further information see <https://bugzilla.gnome.org/show_bug.cgi?id=557469>.
     def __init__(self,controller):
         gtk.StatusIcon.__init__(self)
+        self.block_changes = True
+        self.controller = controller
+        self.set_disconnected_ui()
+        self.set_from_file(getAbsoluteFilepath(PROGRAM_ICON))
+        self.set_tooltip('NETIO-230A control')
+        self.set_visible(True)
+        self.connect('activate', self.on_activate)
+        self.connect('popup-menu', self.on_popup_menu)
+        self.block_changes = False
+    
+    def set_disconnected_ui(self):
+        menu = '''
+            <ui>
+             <menubar name="Menubar">
+              <menu action="Menu">
+               <menuitem action="ConnectNote"/>
+               <separator/>
+               <menuitem action="About"/>
+               <separator/>
+               <menuitem action="Quit"/>
+              </menu>
+             </menubar>
+            </ui>
+        '''
+        # order of the elements in the action tuples:
+        # The name of the action. Must be specified.
+        # The stock id for the action. Optional with a default value of None if a label is specified.
+        # The label for the action. This field should typically be marked for translation, see the set_translation_domain() method. Optional with a default value of None if a stock id is specified.
+        # The accelerator for the action, in the format understood by the gtk.accelerator_parse() function. Optional with a default value of None.
+        # The tooltip for the action. This field should typically be marked for translation, see the set_translation_domain() method. Optional with a default value of None.
+        # The callback function invoked when the action is activated. Optional with a default value of None.
+        actions = [
+            ('Menu',  None, 'Menu'),
+            #('Search', None, '_Search...', None, 'Search files with MetaTracker', self.on_activate),
+            ('ConnectNote', None, ' - please connect first... - ', None, 'Please connect to a NETIO-230A device to be able to power on/off sockets.', self.on_toggle),
+            ('About', gtk.STOCK_ABOUT, '_About...', None, 'About NETIO-230A control', self.on_about),
+            ('Quit', gtk.STOCK_QUIT, '_Quit', None, 'Quit the program', gtk.main_quit),]
+        ag = gtk.ActionGroup('Actions')
+        ag.add_actions(actions)
+        self.manager = gtk.UIManager()
+        self.manager.insert_action_group(ag, 0)
+        self.manager.add_ui_from_string(menu)
+        self.menu = self.manager.get_widget('/Menubar/Menu/About').props.parent
+        connect_note = self.manager.get_widget('/Menubar/Menu/ConnectNote')
+        image = gtk.Image()
+        image.set_from_file(getAbsoluteFilepath(PROGRAM_ICON))
+        connect_note.set_image(image)
+        #search.get_children()[0].set_markup('<b>_Search...</b>')
+        #search.get_children()[0].set_use_underline(True)
+        #search.get_children()[0].set_use_markup(True)
+        #search.get_children()[1].set_from_stock(gtk.STOCK_FIND, gtk.ICON_SIZE_MENU)
+
+    def update_checkboxes(self,new_status):
+        i = 1
+        self.block_changes = True
+        for socket in new_status:
+            menu_item = self.manager.get_widget('/Menubar/Menu/Socket' + str(i))
+            menu_item.set_label(str(i) + ": " + socket[0])
+            menu_item.set_active(socket[1])
+            i += 1
+        self.block_changes = False
+
+    def set_connected_ui(self):
         menu = '''
             <ui>
              <menubar name="Menubar">
@@ -377,36 +448,34 @@ class TrayIcon(gtk.StatusIcon):
         actions = [
             ('Menu',  None, 'Menu'),
             #('Search', None, '_Search...', None, 'Search files with MetaTracker', self.on_activate),
-            ('Socket1', gtk.STOCK_PREFERENCES, 'Toggle Socket _1', None, 'Switch power socket 1 on or off.', self.on_toggle),
-            ('Socket2', gtk.STOCK_PREFERENCES, 'Toggle Socket _2', None, 'Switch power socket 2 on or off.', self.on_toggle),
-            ('Socket3', gtk.STOCK_PREFERENCES, 'Toggle Socket _3', None, 'Switch power socket 3 on or off.', self.on_toggle),
-            ('Socket4', gtk.STOCK_PREFERENCES, 'Toggle Socket _4', None, 'Switch power socket 4 on or off.', self.on_toggle),
             #('Preferences', gtk.STOCK_PREFERENCES, '_Preferences...', None, 'Change MetaTracker preferences', self.on_preferences),
             ('About', gtk.STOCK_ABOUT, '_About...', None, 'About NETIO-230A control', self.on_about),
-            ('Quit', gtk.STOCK_ABOUT, '_Quit', None, 'Quit the program', gtk.main_quit),]
+            ('Quit', gtk.STOCK_QUIT, '_Quit', None, 'Quit the program', gtk.main_quit),]
+        toggle_actions = [
+            ('Socket1', None, '_1: Toggle Socket 1', None, 'Switch power socket 1 on or off.', self.on_toggle,True),
+            ('Socket2', None, '_2: Toggle Socket 2', None, 'Switch power socket 2 on or off.', self.on_toggle),
+            ('Socket3', None, '_3: Toggle Socket 3', None, 'Switch power socket 3 on or off.', self.on_toggle),
+            ('Socket4', None, '_4: Toggle Socket 4', None, 'Switch power socket 4 on or off.', self.on_toggle),]
         ag = gtk.ActionGroup('Actions')
         ag.add_actions(actions)
-        self.controller = controller
+        ag.add_toggle_actions(toggle_actions)
         self.manager = gtk.UIManager()
         self.manager.insert_action_group(ag, 0)
         self.manager.add_ui_from_string(menu)
         self.menu = self.manager.get_widget('/Menubar/Menu/About').props.parent
-        search = self.manager.get_widget('/Menubar/Menu/Search')
+        #search = self.manager.get_widget('/Menubar/Menu/Search')
         #search.get_children()[0].set_markup('<b>_Search...</b>')
         #search.get_children()[0].set_use_underline(True)
         #search.get_children()[0].set_use_markup(True)
         #search.get_children()[1].set_from_stock(gtk.STOCK_FIND, gtk.ICON_SIZE_MENU)
-        self.set_from_file(getAbsoluteFilepath(PROGRAM_ICON))
-        self.set_tooltip('NETIO-230A control')
-        self.set_visible(True)
-        self.connect('activate', self.on_activate)
-        self.connect('popup-menu', self.on_popup_menu)
 
     def on_activate(self, data):
         #print("ok, here we want to toggle the visibility of the program...")
         self.controller.toggle_visibility()
     
     def on_toggle(self, action):
+        if self.block_changes == True:
+            return
         try:
             socket_name = action.get_name()
         except:
@@ -437,13 +506,15 @@ class Controller(object):
     def run(self):
         self.nextStep = "runDeviceSelector"
         self.visible = True
-        icon = TrayIcon(self)
+        self.icon = TrayIcon(self)
         while self.nextStep != "":
             if self.nextStep == "runDeviceSelector":
                 self.nextStep = ""
+                self.icon.set_disconnected_ui()
                 self.runDeviceSelector()
             elif self.nextStep == "runDeviceController":
                 self.nextStep = ""
+                self.icon.set_connected_ui()
                 self.runDeviceController(self.nextStepKWArgs)
     
     def toggle_visibility(self):
