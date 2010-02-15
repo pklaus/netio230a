@@ -256,9 +256,13 @@ class DeviceSelector:
         box.pack_start(button, expand, fill, padding)
         button.connect("clicked",self.connect_clicked, self.treeview)
         
+        scroll = gtk.ScrolledWindow()
+        scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC);
+        scroll.add(self.treeview);
+
         spacing, homogenious, expand, fill, padding = 1, False, False, True, 2
         superbox = gtk.VBox(homogeneous, spacing)
-        superbox.pack_start(self.treeview, True, True, 1)
+        superbox.pack_start(scroll, True, True, 1)
         superbox.pack_start(box, False, False, 0)
         
         self.superbox = superbox
