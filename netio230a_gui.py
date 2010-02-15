@@ -313,10 +313,10 @@ class DeviceSelector:
                 break
             except StandardError, error:
                 netio = None
-                continue_abort = gtk.MessageDialog(parent=dl.dialog, flags=gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT, type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_YES_NO, message_format="Connection failed. \n\n"+str(error)+"\nEdit host, port and credentials or abort?")
+                continue_abort = gtk.MessageDialog(parent=dl.dialog, flags=gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT, type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_OK_CANCEL, message_format="Connection failed. \n\n"+str(error)+"\nChange connection details and try again?")
                 response = continue_abort.run()
                 continue_abort.destroy()
-                if response == gtk.RESPONSE_YES:
+                if response == gtk.RESPONSE_OK:
                     dl.dialog.hide()
                     del dl
                     dl = ConnectionDetailDialog(data['host'], data['username'], data['password'], data['tcp_port'])
