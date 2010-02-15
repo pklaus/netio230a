@@ -149,10 +149,17 @@ class netio230a(object):
         return self.__sendRequest("port setup " + str(power_socket+1))
     
     def setPowerSocketPower(self,power_socket,switchOn=False):
-        """setPowerSocketPower(power_socket,switchOn=False): method to set the power status of the power socket specified by the argument power socket to the bool argument switchOn
+        """setPowerSocketPower(power_socket,switchOn=False): method to set the power status of the power socket specified by the argument power_socket to the bool argument switchOn
         returns nothing"""
         # the type conversion of switchOn ensures that the values are either "0" or "1":
         self.__sendRequest("port " + str(power_socket) + " " + str(int(bool(int(switchOn)))) )
+        
+    def togglePowerSocketPower(self,power_socket):
+        """togglePowerSocketPower(power_socket): toggles the power status of power socket specified by the (one based) argument power_socket.
+        returns a boolean indicating the new status"""
+        previous_state = self.getPowerSocket(power_socket-1).getPowerOn() # the getPowerSocket() function has a zero based argument! therefore -1
+        self.setPowerSocketPower(power_socket, not previous_state)
+        return not previous_state
     
     def setPowerSocketTempInterrupt(self,power_socket):
         self.__sendRequest("port " + str(int(power_socket)) + " int" )
