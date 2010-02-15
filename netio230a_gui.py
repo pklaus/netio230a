@@ -343,11 +343,89 @@ class DeviceSelector:
         gtk.main_quit()
         return False
 
+class TrayIcon(gtk.StatusIcon):
+    # reely adapted from the tracker-applet: <https://labs.codethink.co.uk/index.php/p/tracker/source/tree/master/python/applet/applet.py>
+    def __init__(self,controller):
+        gtk.StatusIcon.__init__(self)
+        menu = '''
+            <ui>
+             <menubar name="Menubar">
+              <menu action="Menu">
+               <menuitem action="Socket1"/>
+               <menuitem action="Socket2"/>
+               <menuitem action="Socket3"/>
+               <menuitem action="Socket4"/>
+               <menuitem action="Preferences"/>
+               <separator/>
+               <menuitem action="About"/>
+              </menu>
+             </menubar>
+            </ui>
+        '''
+        actions = [
+            ('Menu',  None, 'Menu'),
+            #('Search', None, '_Search...', None, 'Search files with MetaTracker', self.on_activate),
+            ('Socket1', gtk.STOCK_PREFERENCES, 'Toggle Socket _1', None, 'Switch power socket 1 on or off.', self.on_toggle),
+            ('Socket2', gtk.STOCK_PREFERENCES, 'Toggle Socket _2', None, 'Switch power socket 2 on or off.', self.on_toggle),
+            ('Socket3', gtk.STOCK_PREFERENCES, 'Toggle Socket _3', None, 'Switch power socket 3 on or off.', self.on_toggle),
+            ('Socket4', gtk.STOCK_PREFERENCES, 'Toggle Socket _4', None, 'Switch power socket 4 on or off.', self.on_toggle),
+            ('Preferences', gtk.STOCK_PREFERENCES, '_Preferences...', None, 'Change MetaTracker preferences', self.on_preferences),
+            ('About', gtk.STOCK_ABOUT, '_About...', None, 'About NETIO-230A control', self.on_about)]
+        ag = gtk.ActionGroup('Actions')
+        ag.add_actions(actions)
+        self.controller = controller
+        self.manager = gtk.UIManager()
+        self.manager.insert_action_group(ag, 0)
+        self.manager.add_ui_from_string(menu)
+        self.menu = self.manager.get_widget('/Menubar/Menu/About').props.parent
+        search = self.manager.get_widget('/Menubar/Menu/Search')
+        #search.get_children()[0].set_markup('<b>_Search...</b>')
+        #search.get_children()[0].set_use_underline(True)
+        #search.get_children()[0].set_use_markup(True)
+        #search.get_children()[1].set_from_stock(gtk.STOCK_FIND, gtk.ICON_SIZE_MENU)
+        self.set_from_file(getAbsoluteFilepath(PROGRAM_ICON))
+        self.set_tooltip('NETIO-230A control')
+        self.set_visible(True)
+        self.connect('activate', self.on_activate)
+        self.connect('popup-menu', self.on_popup_menu)
+
+    def on_activate(self, data):
+        print("ok, here we want to toggle the visibility of the program...")
+    
+    def on_toggle(self, action):
+        try:
+            socket_name = action.get_name()
+        except:
+            raise NameError("actions seems to be no gtk.Action! something went wrong")
+        if socket_name.find("Socket") != -1:
+            try:
+                print("toggeling " + socket_name[6])
+                print self.controller.topical_window.netio.togglePowerSocketPower(int(socket_name[6]))
+                self.controller.topical_window.netio.disconnect()
+            except:
+                print("sorry, log in first.")
+
+    def on_popup_menu(self, status, button, time):
+        self.menu.popup(None, None, None, button, time)
+
+    def on_preferences(self, data):
+        print 'preferences'
+
+    def on_about(self, data):
+        dialog = gtk.AboutDialog()
+        dialog.set_name('NETIO-230A control')
+        dialog.set_version('0.1')
+        dialog.set_comments('Command the NETIO-230A device')
+        dialog.set_website('http://pklaus.github.com/netio230a')
+        dialog.run()
+        dialog.destroy()
+
+
+
 class Controller(object):
     def run(self):
-        icon = gtk.StatusIcon()
-        icon.set_from_file(getAbsoluteFilepath(PROGRAM_ICON))
         self.nextStep = "runDeviceSelector"
+        icon = TrayIcon(self)
         while self.nextStep != "":
             if self.nextStep == "runDeviceSelector":
                 self.nextStep = ""
@@ -361,11 +439,11 @@ class Controller(object):
         self.nextStepKWArgs = kwargs
     
     def runDeviceSelector(self):
-        topical_window = DeviceSelector(self)
+        self.topical_window = DeviceSelector(self)
         gtk.main()
     
     def runDeviceController(self, connection_details):
-        topical_window = DeviceController(self, connection_details)
+        self.topical_window = DeviceController(self, connection_details)
         gtk.main()
 
 
