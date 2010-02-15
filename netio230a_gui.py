@@ -52,10 +52,10 @@ class DeviceController:
         self.window = self.builder.get_object("mainWindow")
         self.about_dialog = self.builder.get_object( "aboutDialog" )
         
-        self.builder.connect_signals(self)
         
         self.__updateLabels()
         self.__updatePowerSocketStatus()
+        self.builder.connect_signals(self)
         self.window.show()
     
     def cb_disconnect(self, button, *args):
@@ -82,8 +82,8 @@ class DeviceController:
         elif page_num == 2:
             try:
                 power_sockets = self.netio.getAllPowerSockets()
-            except StandardError:
-                print("could not connect")
+            except StandardError, error:
+                print(str(error))
                 return
             
             netio = None
@@ -173,6 +173,7 @@ class ConnectionDetailDialog:
         for field_name in entry_field_names:
             if str(locals()[field_name]) == '': # this is nice trick to call the variable with the name stored in field_name
                 self.builder.get_object(field_name+"_text").grab_focus()
+        self.builder.get_object("action_area").set_focus_chain([self.builder.get_object("connect_button"), self.builder.get_object("abort_button")])
     
     def run(self):
         self.builder.connect_signals(self)
@@ -188,7 +189,12 @@ class ConnectionDetailDialog:
             self.__tcp_port = 0
             self.builder.get_object("port_text").set_text("0")
     
-    def response_handler(self, dialog, response_id):
+    def enter_pressed(self, widget):
+        self.builder.get_object("connect_button").activate()
+        ## could also be done by setting the default response id:
+        #self.dialog.set_default_response(response_id) # resp_id might be 1
+    
+    def response_handler(self, widget, response_id):
         self.updateData()
     
     def getData(self):
@@ -303,11 +309,18 @@ class DeviceSelector:
                         netio = None
                         break
                     except StandardError, error:
-                        print str(error)
-                        dl.dialog.hide()
-                        del dl
-                        dl = ConnectionDetailDialog(data['host'], data['username'], data['password'], data['tcp_port'])
-                        result = dl.run()
+                        netio = None
+                        continue_abort = gtk.MessageDialog(parent=dl.dialog, flags=gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT, type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_YES_NO, message_format="Connection failed. \n\n"+str(error)+"\nEdit host, port and credentials or abort?")
+                        response = continue_abort.run()
+                        continue_abort.destroy()
+                        if response == gtk.RESPONSE_YES:
+                            dl.dialog.hide()
+                            del dl
+                            dl = ConnectionDetailDialog(data['host'], data['username'], data['password'], data['tcp_port'])
+                            result = dl.run()
+                        else:
+                            result = 0
+                            break
                 
                 dl.dialog.hide()
                 del dl

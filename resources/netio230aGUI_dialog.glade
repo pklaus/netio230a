@@ -35,6 +35,7 @@
                     <property name="can_focus">True</property>
                     <property name="invisible_char">&#x2022;</property>
                     <property name="width_chars">25</property>
+                    <signal name="activate" handler="enter_pressed"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -65,6 +66,7 @@
                     <property name="can_focus">True</property>
                     <property name="invisible_char">&#x2022;</property>
                     <property name="width_chars">25</property>
+                    <signal name="activate" handler="enter_pressed"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -95,6 +97,7 @@
                     <property name="can_focus">True</property>
                     <property name="invisible_char">&#x2022;</property>
                     <property name="width_chars">25</property>
+                    <signal name="activate" handler="enter_pressed"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -126,6 +129,7 @@
                     <property name="invisible_char">&#x2022;</property>
                     <property name="width_chars">25</property>
                     <property name="invisible_char_set">True</property>
+                    <signal name="activate" handler="enter_pressed"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -143,7 +147,7 @@
           </packing>
         </child>
         <child internal-child="action_area">
-          <object class="GtkHButtonBox" id="dialog-action_area1">
+          <object class="GtkHButtonBox" id="action_area">
             <property name="visible">True</property>
             <property name="layout_style">end</property>
             <child>
