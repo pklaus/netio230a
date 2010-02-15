@@ -42,6 +42,19 @@ def getAbsoluteFilepath(filename):
     fullpath = os.path.abspath(os.path.dirname(sys.argv[0]))
     return fullpath + '/resources/' + filename
 
+class AboutDialog:
+    def __init__(self):
+        
+        self.builder = gtk.Builder()
+        self.builder.add_from_file(getAbsoluteFilepath(DEVICE_CONTROLLER_UI))
+        
+        self.about_dialog = self.builder.get_object( "aboutDialog" )
+        self.about_dialog.set_icon_from_file(getAbsoluteFilepath(PROGRAM_ICON))
+    
+    def run(self):
+        self.about_dialog.run()
+        self.about_dialog.destroy()
+
 class DeviceController:
     def __init__(self,controller,connection_details):
         self.controller = controller
@@ -59,11 +72,11 @@ class DeviceController:
         self.builder.add_from_file(getAbsoluteFilepath(DEVICE_CONTROLLER_UI))
         
         self.window = self.builder.get_object("mainWindow")
-        self.about_dialog = self.builder.get_object( "aboutDialog" )
+        self.window.set_icon_from_file(getAbsoluteFilepath(PROGRAM_ICON))
         
         
-        self.__updateLabels()
-        self.__updatePowerSocketStatus()
+        self.updateLabels()
+        self.updatePowerSocketStatus()
         self.builder.connect_signals(self)
         self.window.show()
     
@@ -80,43 +93,41 @@ class DeviceController:
         gtk.main_quit()
     
     def cb_about(self, button):
-        self.about_dialog.run()
-        self.about_dialog.hide()
+        about = AboutDialog()
+        about.run()
         
     def cb_updateDisplay(self, notebook, page, page_num):
         if page_num == 0:
-            self.__updatePowerSocketStatus()
+            self.updatePowerSocketStatus()
         elif page_num == 1:
-            self.__updateSystemSetup()
+            self.updateSystemSetup()
         elif page_num == 2:
-            try:
-                power_sockets = self.netio.getAllPowerSockets()
-            except StandardError, error:
-                print(str(error))
-                return
-            
-            netio = None
-            for i in range(4):
-                ## shorter form with builder.get_object(). cf. <http://stackoverflow.com/questions/2072976/access-to-widget-in-gtk>
-                self.builder.get_object("socket"+str(i+1)).set_active(power_sockets[i].getPowerOn())
+            self.updatePowerSocketStatus()
         else:
             return
     
     def cb_refresh(self, button):
-        self.__updatePowerSocketStatus()
+        self.updatePowerSocketStatus()
 
-    def __updatePowerSocketStatus(self):
+    def updatePowerSocketStatus(self):
         try:
             power_sockets = self.netio.getAllPowerSockets()
         except StandardError, error:
             print(str(error))
             return
         self.netio.disconnect()
+        
+        # update checkboxes:
+        for i in range(4):
+            ## shorter form with builder.get_object(). cf. <http://stackoverflow.com/questions/2072976/access-to-widget-in-gtk>
+            self.builder.get_object("socket"+str(i+1)).set_active(power_sockets[i].getPowerOn())
+        
+        # update the status text:
         tb = gtk.TextBuffer()
         tb.set_text("power status:\nsocket 1: %s\nsocket 2: %s\nsocket 3: %s\nsocket 4: %s" % (power_sockets[0].getPowerOn(),power_sockets[1].getPowerOn(),power_sockets[2].getPowerOn(),power_sockets[3].getPowerOn()))
         self.builder.get_object("status_output").set_buffer( tb )
     
-    def __updateLabels(self):
+    def updateLabels(self):
         try:
             power_sockets = self.netio.getAllPowerSockets()
         except StandardError, error:
@@ -129,7 +140,7 @@ class DeviceController:
     
     
     
-    def __updateSystemSetup(self):
+    def updateSystemSetup(self):
         try:
             deviceAlias = self.netio.getDeviceAlias()
             version = self.netio.getFirmwareVersion()
@@ -355,9 +366,10 @@ class TrayIcon(gtk.StatusIcon):
                <menuitem action="Socket2"/>
                <menuitem action="Socket3"/>
                <menuitem action="Socket4"/>
-               <menuitem action="Preferences"/>
                <separator/>
                <menuitem action="About"/>
+               <separator/>
+               <menuitem action="Quit"/>
               </menu>
              </menubar>
             </ui>
@@ -369,8 +381,9 @@ class TrayIcon(gtk.StatusIcon):
             ('Socket2', gtk.STOCK_PREFERENCES, 'Toggle Socket _2', None, 'Switch power socket 2 on or off.', self.on_toggle),
             ('Socket3', gtk.STOCK_PREFERENCES, 'Toggle Socket _3', None, 'Switch power socket 3 on or off.', self.on_toggle),
             ('Socket4', gtk.STOCK_PREFERENCES, 'Toggle Socket _4', None, 'Switch power socket 4 on or off.', self.on_toggle),
-            ('Preferences', gtk.STOCK_PREFERENCES, '_Preferences...', None, 'Change MetaTracker preferences', self.on_preferences),
-            ('About', gtk.STOCK_ABOUT, '_About...', None, 'About NETIO-230A control', self.on_about)]
+            #('Preferences', gtk.STOCK_PREFERENCES, '_Preferences...', None, 'Change MetaTracker preferences', self.on_preferences),
+            ('About', gtk.STOCK_ABOUT, '_About...', None, 'About NETIO-230A control', self.on_about),
+            ('Quit', gtk.STOCK_ABOUT, '_Quit', None, 'Quit the program', gtk.main_quit),]
         ag = gtk.ActionGroup('Actions')
         ag.add_actions(actions)
         self.controller = controller
@@ -390,7 +403,8 @@ class TrayIcon(gtk.StatusIcon):
         self.connect('popup-menu', self.on_popup_menu)
 
     def on_activate(self, data):
-        print("ok, here we want to toggle the visibility of the program...")
+        #print("ok, here we want to toggle the visibility of the program...")
+        self.controller.toggle_visibility()
     
     def on_toggle(self, action):
         try:
@@ -399,32 +413,30 @@ class TrayIcon(gtk.StatusIcon):
             raise NameError("actions seems to be no gtk.Action! something went wrong")
         if socket_name.find("Socket") != -1:
             try:
-                print("toggeling " + socket_name[6])
-                print self.controller.topical_window.netio.togglePowerSocketPower(int(socket_name[6]))
+                #print("toggeling " + socket_name[6])
+                self.controller.topical_window.netio.togglePowerSocketPower(int(socket_name[6]))
                 self.controller.topical_window.netio.disconnect()
+                self.controller.topical_window.updatePowerSocketStatus()
             except:
-                print("sorry, log in first.")
+                #print("sorry, log in first.")
+                pass
 
     def on_popup_menu(self, status, button, time):
         self.menu.popup(None, None, None, button, time)
 
-    def on_preferences(self, data):
-        print 'preferences'
+    #def on_preferences(self, data):
+    #    print 'preferences'
 
     def on_about(self, data):
-        dialog = gtk.AboutDialog()
-        dialog.set_name('NETIO-230A control')
-        dialog.set_version('0.1')
-        dialog.set_comments('Command the NETIO-230A device')
-        dialog.set_website('http://pklaus.github.com/netio230a')
-        dialog.run()
-        dialog.destroy()
+        about = AboutDialog()
+        about.run()
 
 
 
 class Controller(object):
     def run(self):
         self.nextStep = "runDeviceSelector"
+        self.visible = True
         icon = TrayIcon(self)
         while self.nextStep != "":
             if self.nextStep == "runDeviceSelector":
@@ -433,6 +445,14 @@ class Controller(object):
             elif self.nextStep == "runDeviceController":
                 self.nextStep = ""
                 self.runDeviceController(self.nextStepKWArgs)
+    
+    def toggle_visibility(self):
+        if self.visible == True:
+            self.topical_window.window.hide()
+            self.visible = False
+        else:
+            self.topical_window.window.show()
+            self.visible = True
     
     def setNextStep(self,what, **kwargs):
         self.nextStep = what

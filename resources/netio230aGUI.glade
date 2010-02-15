@@ -8,7 +8,6 @@
     <property name="title" translatable="yes">NETIO 230A control</property>
     <property name="resizable">False</property>
     <property name="window_position">mouse</property>
-    <property name="icon">netio230a_icon.png</property>
     <signal name="destroy" handler="gtk_main_quit"/>
     <child>
       <object class="GtkVBox" id="vbox1">
@@ -476,9 +475,9 @@
   <object class="GtkAboutDialog" id="aboutDialog">
     <property name="border_width">5</property>
     <property name="type_hint">normal</property>
-    <property name="program_name">netio230a GUI</property>
-    <property name="version">0.1 beta</property>
-    <property name="copyright" translatable="yes">(c) 2009 by Philipp Klaus
+    <property name="program_name">netio230a control GUI</property>
+    <property name="version">v1.0</property>
+    <property name="copyright" translatable="yes">(c) 2009-2010 by Philipp Klaus
 Licensed under the GPL.</property>
     <property name="comments" translatable="yes">This software helps you access and configure your Koukaam NETIO 230A.</property>
     <property name="website">http://pklaus.github.com/netio230a/</property>
