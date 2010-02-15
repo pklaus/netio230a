@@ -203,8 +203,8 @@ class DeviceSelector:
         self.controller = controller
         # Create a new window
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
-        self.window.set_title("Basic TreeView Example")
-        self.window.set_size_request(300, 200)
+        self.window.set_title("Select a Device")
+        self.window.set_size_request(300, 110)
         self.window.connect("delete_event", self.delete_event)
 
         # create a TreeStore with two string columns to use as the model
@@ -242,8 +242,9 @@ class DeviceSelector:
         # Allow drag and drop reordering of rows
         self.treeview.set_reorderable(True)
         self.treeview.expand_all()
+        self.treeview.set_size_request(-1,200)
 
-        spacing, homogeneous, expand, fill, padding = 2, True, False, False, 2
+        spacing, homogeneous, expand, fill, padding = 2, False, True, True, 2
         # Create a new hbox with the appropriate homogeneous
         # and spacing settings
         box = gtk.HBox(homogeneous, spacing)
@@ -255,10 +256,10 @@ class DeviceSelector:
         box.pack_start(button, expand, fill, padding)
         button.connect("clicked",self.connect_clicked, self.treeview)
         
-        spacing, homogenious, expand, fill, padding = 2, True, False, False, 2
+        spacing, homogenious, expand, fill, padding = 1, False, False, True, 2
         superbox = gtk.VBox(homogeneous, spacing)
         superbox.pack_start(self.treeview, True, True, 1)
-        superbox.pack_start(box, False, False, 2)
+        superbox.pack_start(box, False, False, 0)
         
         self.superbox = superbox
         
