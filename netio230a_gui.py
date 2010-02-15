@@ -158,15 +158,19 @@ class DeviceController:
         self.netio.disconnect()
 
 class ConnectionDetailDialog:
-    def __init__(self,host='',username='admin',password='',tcp_port=1234):
+    def __init__(self,host='',username='admin',password='',port=1234):
         fullpath = os.path.abspath(os.path.dirname(sys.argv[0]))
         self.builder = gtk.Builder()
         self.builder.add_from_file(fullpath + "/resources/netio230aGUI_dialog.glade")
         self.dialog = self.builder.get_object("ConnectionDetailDialog")
         self.builder.get_object("host_text").set_text(host)
-        self.builder.get_object("port_text").set_text(str(tcp_port))
+        self.builder.get_object("port_text").set_text(str(port))
         self.builder.get_object("username_text").set_text(username)
         self.builder.get_object("password_text").set_text(password)
+        entry_field_names = ['host','port','username','password']
+        for field_name in entry_field_names:
+            if str(locals()[field_name]) == '':
+                self.builder.get_object(field_name+"_text").grab_focus()
     
     def run(self):
         self.builder.connect_signals(self)
@@ -204,7 +208,7 @@ class DeviceSelector:
         # Create a new window
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.set_title("Select a Device")
-        self.window.set_size_request(300, 110)
+        self.window.set_size_request(320, 150)
         self.window.connect("delete_event", self.delete_event)
 
         # create a TreeStore with two string columns to use as the model
@@ -257,7 +261,7 @@ class DeviceSelector:
         button.connect("clicked",self.connect_clicked, self.treeview)
         
         scroll = gtk.ScrolledWindow()
-        scroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC);
+        scroll.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC);
         scroll.add(self.treeview);
 
         spacing, homogenious, expand, fill, padding = 1, False, False, True, 2
