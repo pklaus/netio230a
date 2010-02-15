@@ -121,10 +121,10 @@ class netio230a(object):
             hash=str(data).split(" ")[2]
             msg=self.__username + self.__password + hash
             m.update(msg.encode("ascii"))
-            loginString = "clogin " + self.__username + " " + m.hexdigest() + "\n"
+            loginString = "clogin " + self.__username + " " + m.hexdigest() + TELNET_LINE_ENDING
         else:
             # use the password in cleartext
-            loginString = "login " + self.__username + " " + self.__password + "\n"
+            loginString = "login " + self.__username + " " + self.__password + TELNET_LINE_ENDING
         try:
             # send login string and wait for the answer
             response = self.__sendRequest(loginString)
@@ -260,24 +260,28 @@ class netio230a(object):
     # generic method to send requests to the NET-IO 230A and checking the response
     def __sendRequest(self,request,complainIfAnswerNot250=True):
         try:
-            self.__s.send(request.encode("ascii")+b"\n")
+            self.__s.send(request.encode("ascii")+TELNET_LINE_ENDING.encode("ascii"))
         except:
             try:
                 self.__create_socket_and_login()
-                self.__s.send(request.encode("ascii")+b"\n")
+                self.__s.send(request.encode("ascii")+TELNET_LINE_ENDING.encode("ascii"))
             except StandardError,error:
                 raise NameError("no connection possible or other exception: "+str(error))
         
         data = self.__s.recv(self.__bufsize)
         if self.__reSearch("^250 ", data) == None and complainIfAnswerNot250:
-            raise NameError("Error while sending request: " + request + "\nresponse from NET-IO 230A is:  " + data)
+            raise NameError("Error while sending request: " + request + "\nresponse from NET-IO 230A is:  " + data.replace(TELNET_LINE_ENDING,''))
         else:
             data=data.decode("ascii")
             return data.replace("250 ","").replace(TELNET_LINE_ENDING,"")
     
     def disconnect(self):
-        # close the socket:
-        self.__sendRequest("quit",False)
+        try:
+            # send the quit command to the box (if we have an open connection):
+            self.__s.send("quit".encode("ascii")+TELNET_LINE_ENDING.encode("ascii"))
+        except:
+            pass
+        # close the socket (if it is still open):
         self.__s.close()
     
     def __del__(self):
