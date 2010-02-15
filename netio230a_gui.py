@@ -163,13 +163,15 @@ class ConnectionDetailDialog:
         self.builder = gtk.Builder()
         self.builder.add_from_file(fullpath + "/resources/netio230aGUI_dialog.glade")
         self.dialog = self.builder.get_object("ConnectionDetailDialog")
+        # pre-fill values of text entries
         self.builder.get_object("host_text").set_text(host)
         self.builder.get_object("port_text").set_text(str(port))
         self.builder.get_object("username_text").set_text(username)
         self.builder.get_object("password_text").set_text(password)
+        # focus the first empty text entry:
         entry_field_names = ['host','port','username','password']
         for field_name in entry_field_names:
-            if str(locals()[field_name]) == '':
+            if str(locals()[field_name]) == '': # this is nice trick to call the variable with the name stored in field_name
                 self.builder.get_object(field_name+"_text").grab_focus()
     
     def run(self):
