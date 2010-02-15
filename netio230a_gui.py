@@ -313,13 +313,10 @@ class DeviceSelector:
                 break
             except StandardError, error:
                 netio = None
-                continue_abort = gtk.MessageDialog(parent=dl.dialog, flags=gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT, type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_OK_CANCEL, message_format="Connection failed. \n\n"+str(error)+"\nChange connection details and try again?")
+                continue_abort = gtk.MessageDialog(parent=dl.dialog, flags=gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT, type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_OK_CANCEL, message_format="Connection failed. \n\n"+str(error)+"\n\nChange connection details and try again?")
                 response = continue_abort.run()
                 continue_abort.destroy()
                 if response == gtk.RESPONSE_OK:
-                    dl.dialog.hide()
-                    del dl
-                    dl = ConnectionDetailDialog(data['host'], data['username'], data['password'], data['tcp_port'])
                     result = dl.run()
                 else:
                     result = 0
@@ -335,27 +332,6 @@ class DeviceSelector:
         self.window.destroy()
         gtk.main_quit()
         return False
-    
-    def show_connection_details_dialog(self,host):
-          dialog = gtk.Dialog(title="Please provice details for the connection", parent=self.window, flags=0, buttons=None)
-          #where title is the text to be used in the titlebar, parent is the main application window and flags set various modes of operation for the dialog:
-          #DIALOG_MODAL - make the dialog modal
-          #DIALOG_DESTROY_WITH_PARENT - destroy dialog when its parent is destroyed
-          #DIALOG_NO_SEPARATOR - omit the separator between the vbox and the action_area
-          #The buttons argument is a tuple of button text and response pairs. All arguments have defaults and can be specified using keywords.
-
-          #This will create the dialog box, and it is now up to you to use it. You could pack a button in the action_area:
-          button = gtk.Button('test')
-          dialog.action_area.pack_start(button, True, True, 0)
-          button.show()
-
-          #And you could add to the vbox area by packing, for instance, a label in it, try something like this:
-          label = gtk.Label("Dialogs are groovy")
-          dialog.vbox.pack_start(label, True, True, 0)
-          label.show()
-          return dialog.show()
-
-
 
 class Controller(object):
     def run(self):
@@ -375,11 +351,11 @@ class Controller(object):
         self.nextStepKWArgs = kwargs
     
     def runDeviceSelector(self):
-        tvexample = DeviceSelector(self)
+        topical_window = DeviceSelector(self)
         gtk.main()
     
     def runDeviceController(self, connection_details):
-        tvexample = DeviceController(self, connection_details)
+        topical_window = DeviceController(self, connection_details)
         gtk.main()
 
 
