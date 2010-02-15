@@ -115,23 +115,22 @@ class netio230a(object):
         if self.__reSearch("^100 HELLO [0-9A-F]{8}"+TELNET_LINE_ENDING+"$", data) == None and \
            self.__reSearch("^100 HELLO [0-9A-F]{8} - KSHELL V1.1"+TELNET_LINE_ENDING+"$", data) == None and \
            self.__reSearch("^100 HELLO [0-9A-F]{8} - KSHELL V1.2"+TELNET_LINE_ENDING+"$", data) == None  :
-            raise NameError("Error while connecting: Not received a \"100 HELLO ... signal from the NET-IO 230A")
+            raise NameError("Error while connecting: Not received a \"100 HELLO ... signal from the remote device. Maybe not a NET-IO 230A?")
         if self.__secureLogin:
             m = hashlib.md5()
             hash=str(data).split(" ")[2]
             msg=self.__username + self.__password + hash
             m.update(msg.encode("ascii"))
             loginString = "clogin " + self.__username + " " + m.hexdigest() + "\n"
-            # log in using the hashed password
-            self.__s.send(loginString.encode("ascii"))
         else:
-            # log in however sending the password in cleartext
-            self.__s.send("login " + self.__username + " " + self.__password + "\n")
-        # wait for the answer
-        data = self.__s.recv(self.__bufsize)
-        # check the answer for errors
-        if self.__reSearch("^250 OK"+TELNET_LINE_ENDING+"$", data) == None :
-            raise NameError("Error while connecting: Login failed; response from NET-IO 230A is:  " + data)
+            # use the password in cleartext
+            loginString = "login " + self.__username + " " + self.__password + "\n"
+        try:
+            # send login string and wait for the answer
+            response = self.__sendRequest(loginString)
+        except StandardError, error:
+            self.disconnect()
+            raise NameError("Error while connecting: Login failed; " + str(error).partition('\n\n')[2])
 
     def __reSearch(self, regexp, data):
         return re.search(regexp.encode("ascii"), data)
