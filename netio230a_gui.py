@@ -173,6 +173,7 @@ class ConnectionDetailDialog:
         for field_name in entry_field_names:
             if str(locals()[field_name]) == '': # this is nice trick to call the variable with the name stored in field_name
                 self.builder.get_object(field_name+"_text").grab_focus()
+                break
         self.builder.get_object("action_area").set_focus_chain([self.builder.get_object("connect_button"), self.builder.get_object("abort_button")])
     
     def run(self):
@@ -264,6 +265,7 @@ class DeviceSelector:
         # create the buttons
         button = gtk.Button("other device")
         box.pack_start(button, expand, fill, padding)
+        button.connect("clicked",self.connect_clicked)
         button = gtk.Button("connect")
         box.pack_start(button, expand, fill, padding)
         button.connect("clicked",self.connect_clicked, self.treeview)
@@ -283,6 +285,7 @@ class DeviceSelector:
         self.window.show_all()
         
     def connect_clicked(self, button, *args):
+        host = ''
         for arg in args:
             if type(arg)==gtk.TreeView:
                 (model, treeiter) = arg.get_selection().get_selected()
@@ -300,38 +303,38 @@ class DeviceSelector:
                 #else:
                 #    print 'Lieber nicht.'
                 #dlg.destroy()
-                dl = ConnectionDetailDialog(host)
-                result = dl.run()
-                while result == 1:
-                    data = dl.getData()
-                    try:
-                        netio = netio230a.netio230a(data['host'], data['username'], data['password'], True, data['tcp_port'])
-                        netio = None
-                        break
-                    except StandardError, error:
-                        netio = None
-                        continue_abort = gtk.MessageDialog(parent=dl.dialog, flags=gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT, type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_YES_NO, message_format="Connection failed. \n\n"+str(error)+"\nEdit host, port and credentials or abort?")
-                        response = continue_abort.run()
-                        continue_abort.destroy()
-                        if response == gtk.RESPONSE_YES:
-                            dl.dialog.hide()
-                            del dl
-                            dl = ConnectionDetailDialog(data['host'], data['username'], data['password'], data['tcp_port'])
-                            result = dl.run()
-                        else:
-                            result = 0
-                            break
-                
-                dl.dialog.hide()
-                del dl
-                if result != 1:
-                    return
-                
-                self.controller.setNextStep("runDeviceController", host = data['host'], tcp_port = data['tcp_port'], username=data['username'], password = data['password'])
-                #self.window.hide()
-                self.window.destroy()
-                gtk.main_quit()
-                return False
+        dl = ConnectionDetailDialog(host)
+        result = dl.run()
+        while result == 1:
+            data = dl.getData()
+            try:
+                netio = netio230a.netio230a(data['host'], data['username'], data['password'], True, data['tcp_port'])
+                netio = None
+                break
+            except StandardError, error:
+                netio = None
+                continue_abort = gtk.MessageDialog(parent=dl.dialog, flags=gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT, type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_YES_NO, message_format="Connection failed. \n\n"+str(error)+"\nEdit host, port and credentials or abort?")
+                response = continue_abort.run()
+                continue_abort.destroy()
+                if response == gtk.RESPONSE_YES:
+                    dl.dialog.hide()
+                    del dl
+                    dl = ConnectionDetailDialog(data['host'], data['username'], data['password'], data['tcp_port'])
+                    result = dl.run()
+                else:
+                    result = 0
+                    break
+        
+        dl.dialog.hide()
+        del dl
+        if result != 1:
+            return
+        
+        self.controller.setNextStep("runDeviceController", host = data['host'], tcp_port = data['tcp_port'], username=data['username'], password = data['password'])
+        #self.window.hide()
+        self.window.destroy()
+        gtk.main_quit()
+        return False
     
     def show_connection_details_dialog(self,host):
           dialog = gtk.Dialog(title="Please provice details for the connection", parent=self.window, flags=0, buttons=None)
