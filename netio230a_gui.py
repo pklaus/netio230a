@@ -23,6 +23,8 @@
 # documentation on PyGTK:
 # http://library.gnome.org/devel/pygtk/stable/
 # http://library.gnome.org/devel/pygobject/stable/
+#
+# good pygtk tutorial: <http://zetcode.com/tutorials/pygtktutorial/>
 
 import sys
 import os # for os.path.abspath() and os.path.dirname()
@@ -31,6 +33,14 @@ import gtk
 import pdb
 import netio230a
 
+
+PROGRAM_ICON = 'netio230a_icon.png'
+DEVICE_CONTROLLER_UI = "netio230aGUI.glade"
+CONNECTION_DETAIL_UI = "netio230aGUI_dialog.glade"
+
+def getAbsoluteFilepath(filename):
+    fullpath = os.path.abspath(os.path.dirname(sys.argv[0]))
+    return fullpath + '/resources/' + filename
 
 class DeviceController:
     def __init__(self,controller,connection_details):
@@ -45,9 +55,8 @@ class DeviceController:
         except StandardError, error:
             print str(error)
         
-        fullpath = os.path.abspath(os.path.dirname(sys.argv[0]))
         self.builder = gtk.Builder()
-        self.builder.add_from_file(fullpath + "/resources/netio230aGUI.glade") 
+        self.builder.add_from_file(getAbsoluteFilepath(DEVICE_CONTROLLER_UI))
         
         self.window = self.builder.get_object("mainWindow")
         self.about_dialog = self.builder.get_object( "aboutDialog" )
@@ -159,9 +168,8 @@ class DeviceController:
 
 class ConnectionDetailDialog:
     def __init__(self,host='',username='admin',password='',port=1234):
-        fullpath = os.path.abspath(os.path.dirname(sys.argv[0]))
         self.builder = gtk.Builder()
-        self.builder.add_from_file(fullpath + "/resources/netio230aGUI_dialog.glade")
+        self.builder.add_from_file(getAbsoluteFilepath(CONNECTION_DETAIL_UI))
         self.dialog = self.builder.get_object("ConnectionDetailDialog")
         # pre-fill values of text entries
         self.builder.get_object("host_text").set_text(host)
@@ -217,6 +225,8 @@ class DeviceSelector:
         # Create a new window
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.set_title("Select a Device")
+        self.window.set_icon_from_file(getAbsoluteFilepath(PROGRAM_ICON))
+
         self.window.set_size_request(320, 150)
         self.window.connect("delete_event", self.delete_event)
 
@@ -336,7 +346,7 @@ class DeviceSelector:
 class Controller(object):
     def run(self):
         icon = gtk.StatusIcon()
-        icon.set_from_file('./resources/netio230a_icon.png')
+        icon.set_from_file(getAbsoluteFilepath(PROGRAM_ICON))
         self.nextStep = "runDeviceSelector"
         while self.nextStep != "":
             if self.nextStep == "runDeviceSelector":
