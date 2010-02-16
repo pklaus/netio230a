@@ -471,7 +471,7 @@ class TrayIcon(gtk.StatusIcon):
         self.block_changes = True
         for socket in new_status:
             menu_item = self.manager.get_widget('/Menubar/Menu/Socket' + str(i))
-            menu_item.set_label(str(i) + ": " + socket[0])
+            menu_item.set_label("_%d: %s" % (i, socket[0]))
             menu_item.set_active(socket[1])
             i += 1
         self.block_changes = False

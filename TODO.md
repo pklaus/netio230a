@@ -15,6 +15,8 @@ Class
 GUI
 ---
 
+* more threading (when changing from one tab to another, we want to do see
+  status updates - YES.But first change to that tab)
 * save information in a configuration file:
   * remember program status (activated tab etc.)
 * ability to change the names of the ports via the user interface
