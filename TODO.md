@@ -16,12 +16,11 @@ GUI
 ---
 
 * save information in a configuration file:
-  * remember multiple connection details and login credentials
   * remember program status (activated tab etc.)
 * ability to change the names of the ports via the user interface
 * link to open the devices website with a single click
 * automatic status updates (every 10 minutes, changable in preferences)
-* switch on port for a configurable amount of time
+* switch on a power socket for a configurable amount of time
 
 less important are:
 
@@ -31,6 +30,8 @@ less important are:
 Allready Implemented
 --------------------
 
+* save information in a configuration file:
+  * remember multiple connection details and login credentials
 * login using connect button in the GUI
 * set socket name in GUI switchbox according to the name given in the webinterface
 * implemented all documented commands found in the manual up to command "port" on page 19.
