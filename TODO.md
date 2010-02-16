@@ -33,6 +33,6 @@ Allready Implemented
 * save information in a configuration file:
   * remember multiple connection details and login credentials
 * login using connect button in the GUI
-* set socket name in GUI switchbox according to the name given in the webinterface
+* display socket name in GUI switchbox according to the name given in the webinterface
 * implemented all documented commands found in the manual up to command "port" on page 19.
 
