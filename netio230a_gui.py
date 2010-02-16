@@ -32,6 +32,8 @@ import gtk
 ## for debugging (set debug mark with pdb.set_trace() )
 import pdb
 import netio230a
+# to store and retrieve recent connections:
+import configuration
 
 
 PROGRAM_ICON = 'netio230a_icon.png'
@@ -184,7 +186,7 @@ class DeviceController:
         self.updatePowerSocketStatus()
 
 class ConnectionDetailDialog:
-    def __init__(self,host='',username='admin',password='',port=1234):
+    def __init__(self,host='',username='admin',password='',port=1234, store_connection = True, store_password = False):
         self.builder = gtk.Builder()
         self.builder.add_from_file(getAbsoluteFilepath(CONNECTION_DETAIL_UI))
         self.dialog = self.builder.get_object("ConnectionDetailDialog")
@@ -199,11 +201,17 @@ class ConnectionDetailDialog:
             if str(locals()[field_name]) == '': # this is nice trick to call the variable with the name stored in field_name
                 self.builder.get_object(field_name+"_text").grab_focus()
                 break
+        self.builder.get_object("store_connection").set_active(store_connection)
+        self.builder.get_object("store_password").set_active(store_password)
         self.builder.get_object("action_area").set_focus_chain([self.builder.get_object("connect_button"), self.builder.get_object("abort_button")])
     
     def run(self):
         self.builder.connect_signals(self)
+        self.builder.get_object("store_connection").connect("toggled", self.sensitivityUpdate)
         return self.dialog.run()
+    
+    def sensitivityUpdate(self, widget):
+        self.builder.get_object("store_password").set_sensitive(self.builder.get_object("store_connection").get_active())
     
     def updateData(self):
         self.__host = self.builder.get_object("host_text").get_text()
@@ -214,6 +222,8 @@ class ConnectionDetailDialog:
         except:
             self.__tcp_port = 0
             self.builder.get_object("port_text").set_text("0")
+        self.__store_connection = self.builder.get_object("store_connection").get_active()
+        self.__store_password = self.builder.get_object("store_password").get_active()
     
     def enter_pressed(self, widget):
         self.builder.get_object("connect_button").activate()
@@ -229,6 +239,8 @@ class ConnectionDetailDialog:
         data['username'] = self.__username
         data['password'] = self.__pw
         data['tcp_port'] = self.__tcp_port
+        data['store_connection'] = self.__store_connection
+        data['store_password'] = self.__store_password
         return data
         
 
@@ -248,12 +260,22 @@ class DeviceSelector:
         self.window.connect("delete_event", self.delete_event)
 
         # create a TreeStore with two string columns to use as the model
-        self.treestore = gtk.TreeStore(str,str)
+        self.treestore = gtk.TreeStore(str,str,int,str,str)
 
         devices = netio230a.get_all_detected_devices()
-        piter = self.treestore.append(None,['auto-detected devices',''])
+        if len(devices) > 0:
+            self.auto_iter = self.treestore.append(None,['auto-detected devices','',0,'',''])
+        else:
+            self.treestore.append(None,['no auto-detected devices','',0,'',''])
         for device in devices:
-            self.treestore.append(piter,[device[0],str(device[1][0])+'.'+str(device[1][1])+'.'+str(device[1][2])+'.'+str(device[1][3])])
+            self.treestore.append(self.auto_iter,[device[0],str(device[1][0])+'.'+str(device[1][1])+'.'+str(device[1][2])+'.'+str(device[1][3]),0,'',''])
+        
+        # devices from configuration has the form [devicename, host, port, username, password]
+        devices = configuration.getConfiguration()
+        if len(devices) > 0:
+            self.recently_iter = self.treestore.append(None,['previously used devices','',0,'',''])
+        for device in devices:
+            self.treestore.append(self.recently_iter,[device[0],device[1],device[2],device[3],device[4]])
         
         # more on TreeViews: <http://www.thesatya.com/blog/2007/10/pygtk_treeview.html>
         # and <http://www.pygtk.org/pygtk2tutorial/ch-TreeViewWidget.html#sec-TreeViewOverview>
@@ -313,11 +335,25 @@ class DeviceSelector:
         
     def connect_clicked(self, button, *args):
         host = ''
+        stored_connection = False
         for arg in args:
             if type(arg)==gtk.TreeView:
                 (model, treeiter) = arg.get_selection().get_selected()
                 host = model.get_value(treeiter,1)
-                
+                parent_iter = model.iter_parent(treeiter)
+                # compare the text (of the 1st col) of the parent node with the text of the recently_iter node
+                try:
+                    if model.get_value(self.recently_iter,0) == model.get_value(parent_iter,0):
+                        stored_connection = True
+                        tcp_port = model.get_value(treeiter,2)
+                        username = model.get_value(treeiter,3)
+                        password = model.get_value(treeiter,4)
+                        store_password = False if password=='' else True
+                except:
+                    # we don't have recently used devices yet...
+                    pass
+                if host == '':
+                    return
                 #dlg = gtk.Dialog(title='Ein Dialog',
                 #    parent=self.window,
                 #    buttons=(gtk.STOCK_CANCEL,
@@ -330,12 +366,16 @@ class DeviceSelector:
                 #else:
                 #    print 'Lieber nicht.'
                 #dlg.destroy()
-        dl = ConnectionDetailDialog(host)
+        if stored_connection:
+            dl = ConnectionDetailDialog(host, username, password, tcp_port, stored_connection, store_password)
+        else:
+            dl = ConnectionDetailDialog(host)
         result = dl.run()
         while result == 1:
             data = dl.getData()
             try:
                 netio = netio230a.netio230a(data['host'], data['username'], data['password'], True, data['tcp_port'])
+                devicename = netio.getDeviceAlias()
                 netio = None
                 break
             except StandardError, error:
@@ -354,6 +394,14 @@ class DeviceSelector:
         if result != 1:
             return
         
+        # connection successful, do want to store the configuration?
+        if data['store_connection'] == True:
+            configuration.changeConfiguration(configuration.UPDATE, devicename, data['host'], data['tcp_port'], data['username'], data['password'] if data['store_password'] else '')
+        else:
+            configuration.changeConfiguration(configuration.REMOVE, devicename, data['host'], data['tcp_port'], data['username'], '')
+            md = gtk.MessageDialog(self.window, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_INFO, gtk.BUTTONS_CLOSE, "Connection details removed from configuration file.")
+            md.run()
+            md.destroy()
         self.controller.setNextStep("runDeviceController", host = data['host'], tcp_port = data['tcp_port'], username=data['username'], password = data['password'])
         #self.window.hide()
         self.window.destroy()
