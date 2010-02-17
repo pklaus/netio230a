@@ -30,6 +30,7 @@ from datetime import datetime
 import os
 
 CONFIGURATION_FILE = os.path.expanduser("~/.netio230a/connections.json")
+LOG_FILE = os.path.expanduser("~/.netio230a/netio230a.py.log")
 
 REMOVE = -1
 UPDATE = 2

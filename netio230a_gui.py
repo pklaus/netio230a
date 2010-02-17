@@ -35,10 +35,25 @@ import netio230a
 # to store and retrieve recent connections:
 import configuration
 
+import gobject # for the timer
+import signal # for [Ctrl]-[c] catching
 
 PROGRAM_ICON = 'netio230a_icon.png'
 DEVICE_CONTROLLER_UI = "netio230aGUI.glade"
 CONNECTION_DETAIL_UI = "netio230aGUI_dialog.glade"
+
+AUTO_UPDATE = 3 # auto update time seconds
+
+
+# remember position of window:
+#    (x, y) = w.get_position()
+#    (w, h) = w.get_size()
+#
+#restore position:
+#    w = gtk.Window()
+#    w.move(x, y)
+#    w.resize(w, h)
+
 
 def getAbsoluteFilepath(filename):
     fullpath = os.path.abspath(os.path.dirname(sys.argv[0]))
@@ -67,8 +82,9 @@ class DeviceController:
         self.__pw = connection_details['password']
         try:
             self.netio = netio230a.netio230a(self.__host, self.__username, self.__pw, True, self.__tcp_port)
+            self.netio.enable_logging(open(configuration.LOG_FILE,'w'))
         except StandardError, error:
-            print str(error)
+            print(str(error))
         
         self.builder = gtk.Builder()
         self.builder.add_from_file(getAbsoluteFilepath(DEVICE_CONTROLLER_UI))
@@ -80,7 +96,31 @@ class DeviceController:
         self.updateLabels()
         self.updatePowerSocketStatus()
         self.builder.connect_signals(self)
+        self.window.connect("window-state-event",self.handle_window_state_events)
         self.window.show()
+        
+        # a timer to update the UI automatically
+        self.timer_id = gobject.timeout_add(1000, self.timer_tick) # use gobject.timeout_add_seconds() for longer periods
+        self.counter = 0
+    
+    
+    def timer_tick(self):
+        if self.timer_id is not None:
+            self.counter += 1
+            if self.counter%AUTO_UPDATE == 0:
+                self.updatePowerSocketStatus()
+                self.counter = 0
+            return True # run again in one second
+        return False # stop running again
+
+    
+    def handle_window_state_events(self, window, event):
+        if event.changed_mask & gtk.gdk.WINDOW_STATE_ICONIFIED:
+            if event.new_window_state & gtk.gdk.WINDOW_STATE_ICONIFIED:
+                #print 'Window was minimized!'
+                self.controller.toggle_visibility()
+            #else:
+            #    print 'Window was unminimized!'
     
     def cb_disconnect(self, button, *args):
         self.controller.setNextStep("runDeviceSelector")
@@ -256,51 +296,67 @@ class DeviceSelector:
         self.window.set_title("Select a Device")
         self.window.set_icon_from_file(getAbsoluteFilepath(PROGRAM_ICON))
 
-        self.window.set_size_request(320, 150)
+        self.window.set_size_request(460, 220)
         self.window.connect("delete_event", self.delete_event)
 
         # create a TreeStore with two string columns to use as the model
-        self.treestore = gtk.TreeStore(str,str,int,str,str)
+        self.treestore = gtk.TreeStore(str,str,str,str,str)
 
         devices = netio230a.get_all_detected_devices()
         if len(devices) > 0:
-            self.auto_iter = self.treestore.append(None,['auto-detected devices','',0,'',''])
+            self.auto_iter = self.treestore.append(None,['auto-detected devices','','','',''])
         else:
-            self.treestore.append(None,['no auto-detected devices','',0,'',''])
+            self.treestore.append(None,['no auto-detected devices','','','',''])
         for device in devices:
-            self.treestore.append(self.auto_iter,[device[0],str(device[1][0])+'.'+str(device[1][1])+'.'+str(device[1][2])+'.'+str(device[1][3]),0,'',''])
+            #   device name, IP, port, user, password
+            self.treestore.append(self.auto_iter,[device[0],str(device[1][0])+'.'+str(device[1][1])+'.'+str(device[1][2])+'.'+str(device[1][3]),'','',''])
         
         # devices from configuration has the form [devicename, host, port, username, password]
         devices = configuration.getConfiguration()
         if len(devices) > 0:
-            self.recently_iter = self.treestore.append(None,['previously used devices','',0,'',''])
+            self.recently_iter = self.treestore.append(None,['previously used devices','','','',''])
         for device in devices:
-            self.treestore.append(self.recently_iter,[device[0],device[1],device[2],device[3],device[4]])
+            #   device name, IP, port, user, password
+            self.treestore.append(self.recently_iter,[device[0],device[1],str(device[2]),device[3],device[4]])
         
         # more on TreeViews: <http://www.thesatya.com/blog/2007/10/pygtk_treeview.html>
         # and <http://www.pygtk.org/pygtk2tutorial/ch-TreeViewWidget.html#sec-TreeViewOverview>
         # create the TreeView using treestore
         self.treeview = gtk.TreeView(self.treestore)
         # create the TreeViewColumn to display the data
-        self.tvcolumn = gtk.TreeViewColumn('Device Name')
-        self.tvcolumn1 = gtk.TreeViewColumn('IP Address')
+        self.tvc_device_name = gtk.TreeViewColumn('Device Name')
+        self.tvc_ip = gtk.TreeViewColumn('IP Address')
+        self.tvc_tcp_port = gtk.TreeViewColumn('TCP Port')
+        self.tvc_user_name = gtk.TreeViewColumn('User Name')
+        # set alignment of the column titles to right
+        #self.tvc_ip.set_alignment(1.0)
+        #self.tvc_tcp_port.set_alignment(1.0)
         # add tvcolumn to treeview
-        self.treeview.append_column(self.tvcolumn)
-        self.treeview.append_column(self.tvcolumn1)
+        self.treeview.append_column(self.tvc_device_name)
+        self.treeview.append_column(self.tvc_ip)
+        self.treeview.append_column(self.tvc_tcp_port)
+        self.treeview.append_column(self.tvc_user_name)
         # create a CellRendererText to render the data
         self.cell = gtk.CellRendererText()
+        self.cell_right_align = gtk.CellRendererText()
+        self.cell_right_align.set_property('xalign', 1.0)
         # add the cell to the tvcolumn and allow it to expand
-        self.tvcolumn.pack_start(self.cell, True)
-        self.tvcolumn1.pack_start(self.cell, True)
-        # set the cell "text" attribute to column 0 - retrieve text
-        # from that column in treestore
-        self.tvcolumn.add_attribute(self.cell, 'text', 0)
-        self.tvcolumn1.add_attribute(self.cell, 'text', 1)
+        self.tvc_device_name.pack_start(self.cell, True)
+        self.tvc_ip.pack_start(self.cell_right_align, True)
+        self.tvc_tcp_port.pack_start(self.cell_right_align, True)
+        self.tvc_user_name.pack_start(self.cell, True)
+        # set the cell "text" attribute to column 0 - retrieve text from that column in treestore
+        self.tvc_device_name.add_attribute(self.cell, 'text', 0)
+        self.tvc_ip.add_attribute(self.cell_right_align, 'text', 1)
+        self.tvc_tcp_port.add_attribute(self.cell_right_align, 'text', 2)
+        self.tvc_user_name.add_attribute(self.cell, 'text', 3)
         # make it searchable
         self.treeview.set_search_column(0)
         # Allow sorting on the column
-        self.tvcolumn.set_sort_column_id(0)
-        self.tvcolumn1.set_sort_column_id(1)
+        self.tvc_device_name.set_sort_column_id(0)
+        self.tvc_ip.set_sort_column_id(1)
+        self.tvc_tcp_port.set_sort_column_id(2)
+        self.tvc_user_name.set_sort_column_id(3)
         # Allow drag and drop reordering of rows
         self.treeview.set_reorderable(True)
         self.treeview.expand_all()
@@ -591,5 +647,7 @@ def main():
     controller.run()
 
 if __name__ == "__main__":
+    signal.signal(signal.SIGINT, signal.SIG_DFL) # ^C exits the application
+    
     main()
 

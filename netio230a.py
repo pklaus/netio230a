@@ -72,6 +72,7 @@ class netio230a(object):
             secureLogin bool value specifying whether to use a hashed or a cleartext login. True is hightly recommended for insecure networks!
             customTCPPort  integer specifying which port to connect to, defaul: 23 (NETIO-230A must be reachable via KSHELL/telnet via hostname:customTCPPort)
         """
+        self.logging = False
         self.__host = host
         self.__username = username
         self.__password = password
@@ -95,7 +96,7 @@ class netio230a(object):
         try:
             self.__s.connect((self.__host, self.__tcp_port))
             # wait for the answer
-            data = self.__s.recv(self.__bufsize)
+            data = self.__receive()
         except StandardError, error:
             if type(error) == socket.timeout:
                 raise NameError("Timeout while connecting to " + self.__host)
@@ -107,6 +108,8 @@ class netio230a(object):
                     raise NameError("The connection was refused by the remote host.\nPossible errors: wrong IP or wrong TCP port given or the telnet server on the NETIO-230A crashed.")
                 elif error.errno == errno.EHOSTUNREACH:
                     raise NameError("There is no route to the host given: " + self.__host)
+                elif error.errno == errno.ECONNRESET:
+                    raise NameError("The connection was reset by the device. This is usually the case when the Telnet Server on the device crashed or if the device still has another open network socket. Try to reboot the device (if possible).")
                 
             # in any other case just hand on the risen error:
             raise error
@@ -134,6 +137,18 @@ class netio230a(object):
 
     def __reSearch(self, regexp, data):
         return re.search(regexp.encode("ascii"), data)
+
+    def enable_logging(self, log_file):
+        self.logging = True
+        self.log_file = log_file
+        try:
+            self.log("Logging started on %s." % datetime.now().isoformat())
+        except StandardError, error:
+            self.logging = True
+            raise error
+
+    def log(self, message, line_break=True):
+        self.log_file.write(message + ("\n" if line_break else "" ))
 
     def getPowerSocketList(self):
         """Sends request to the NETIO 230A to ask for the power socket status.
@@ -267,15 +282,15 @@ class netio230a(object):
     # generic method to send requests to the NET-IO 230A and checking the response
     def __sendRequest(self,request,complainIfAnswerNot250=True):
         try:
-            self.__s.send(request.encode("ascii")+TELNET_LINE_ENDING.encode("ascii"))
+            self.__send(request.encode("ascii")+TELNET_LINE_ENDING.encode("ascii"))
         except:
             try:
                 self.__create_socket_and_login()
-                self.__s.send(request.encode("ascii")+TELNET_LINE_ENDING.encode("ascii"))
+                self.__send(request.encode("ascii")+TELNET_LINE_ENDING.encode("ascii"))
             except StandardError,error:
                 raise NameError("no connection possible or other exception: "+str(error))
         
-        data = self.__s.recv(self.__bufsize)
+        data = self.__receive()
         if self.__reSearch("^250 ", data) == None and complainIfAnswerNot250:
             raise NameError("Error while sending request: " + request + "\nresponse from NET-IO 230A is:  " + data.replace(TELNET_LINE_ENDING,''))
         else:
@@ -285,7 +300,8 @@ class netio230a(object):
     def disconnect(self):
         try:
             # send the quit command to the box (if we have an open connection):
-            self.__s.send("quit".encode("ascii")+TELNET_LINE_ENDING.encode("ascii"))
+            self.__send("quit".encode("ascii")+TELNET_LINE_ENDING.encode("ascii"))
+            self.__receive()  # should give  110 BYE
         except:
             pass
         # close the socket (if it is still open):
@@ -295,6 +311,16 @@ class netio230a(object):
         self.disconnect()
     ###   end of class netio230a   ----------------
 
+    def __send(self, data):
+        if self.logging:
+            self.log(data, False)
+        self.__s.send(data)
+
+    def __receive(self):
+        response = self.__s.recv(self.__bufsize)
+        if self.logging:
+            self.log(response, False)
+        return response
 
 
 class PowerSocket(object):
