@@ -37,10 +37,10 @@ NOT_SET="--not set--"
 
 def main():
     #p = optparse.OptionParser(usage="usage: %prog [options] -i[source] -o[target]",add_help_option=False)
-    p = optparse.OptionParser(add_help_option=False)
+    p = optparse.OptionParser(usage="usage: %prog [--host HOST] [--port PORT] [--username USERNAME] [--password PASSWORD] -s SOCKET [--on]",add_help_option=False)
     
     p.add_option('-?', action="store_true", help="show this help message and exit", dest="show_help")
-    p.add_option('--host', '-h', default=NOT_SET)
+    p.add_option('--host', '-h', default=NOT_SET, help="Hostname for the device (defaults to the first one found by the discovery in your LAN)")
     p.add_option('--port', '-p', default="1234", help="TCP port (defaults to 1234)")
     p.add_option('--username', '-u', default="admin", help="username to use for login (defaults to admin)")
     p.add_option('--password', '-w', default="", help="password to use for login (will ask if left empty)")
@@ -72,7 +72,9 @@ def main():
             options.host = ip
         else:
             print netio230a_devices
-            p.error("Please specify a host you want to connect to")
+            addresses = ", ".join([ ("%s: %d.%d.%d.%d" % (dev[0], dev[1][0], dev[1][1], dev[1][2], dev[1][3])) for dev in netio230a_devices])
+            print addresses
+            p.error("%d devices found (%s).\nPlease specify which one you want to connect to using the --host parameter." % (len(netio230a_devices), addresses) )
     
     if options.socket is "not set":
         p.error("Please specify the socket you want to switch.")
