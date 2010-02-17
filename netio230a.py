@@ -57,6 +57,7 @@ from datetime import datetime
 
 TELNET_LINE_ENDING = "\r\n"
 TELNET_SOCKET_TIMEOUT = 5
+INITIAL_WAIT_FOR_OTHER_REQUEST = 0.013 # 13 ms to wait for other requests (on first request), this is my mean value for 1000 requests
 
 class netio230a(object):
     """netio230a is the basic class that you want to instantiate when communicating
@@ -73,6 +74,10 @@ class netio230a(object):
             customTCPPort  integer specifying which port to connect to, defaul: 23 (NETIO-230A must be reachable via KSHELL/telnet via hostname:customTCPPort)
         """
         self.logging = False
+        self.__pending_request = False
+        self.__relogin_try = False
+        self.__wait_for_request_time = INITIAL_WAIT_FOR_OTHER_REQUEST
+        self.__number_of_sent_requests = 0
         self.__host = host
         self.__username = username
         self.__password = password
@@ -131,9 +136,19 @@ class netio230a(object):
         try:
             # send login string and wait for the answer
             response = self.__sendRequest(loginString)
+        except NameError, error:
+            self.disconnect()
+            try:
+                problem = str(error).partition('\n\n')[2]
+            except:
+                problem = "?"
+            if problem.find("502 UNKNOWN COMMAND") != -1:
+                raise NameError("Error while connecting: Login failed with message 502 UNKNOWN COMMAND. This is usually the case when the telnet server crashed. Reboot the NETIO-230A device to get it up running again.")
+            else:
+                raise NameError("Error while connecting: Login failed; " + str(error).partition('\n\n')[2])
         except StandardError, error:
             self.disconnect()
-            raise NameError("Error while connecting: Login failed; " + str(error).partition('\n\n')[2])
+            raise NameError("Error while connecting: Login failed; " + str(error))
 
     def __reSearch(self, regexp, data):
         return re.search(regexp.encode("ascii"), data)
@@ -281,21 +296,43 @@ class netio230a(object):
     
     # generic method to send requests to the NET-IO 230A and checking the response
     def __sendRequest(self,request,complainIfAnswerNot250=True):
+        counter = 0
+        # in this loop we want to avoid errors for concurrent requests (from different threads etc.)
+        while self.__pending_request and not self.__relogin_try:
+            time.sleep(self.__wait_for_request_time*2)
+            counter += 1
+            if self.logging:
+                self.log("Waiting for an other request to finish. Average time for processes to finish is %.6f after a total number of %d requests." % (self.__wait_for_request_time, self.__number_of_sent_requests) )
+            if counter > 5:
+                # after 5 failed tries, we give up.
+                raise NameError("Sorry, some other process is sending a request you cannot send yours now.")
+        # set the lock for our request (and therefore block other requests for now)
+        self.__pending_request = True
+        starting_time = time.time()
         try:
             self.__send(request.encode("ascii")+TELNET_LINE_ENDING.encode("ascii"))
         except:
             try:
+                self.__relogin_try = True
                 self.__create_socket_and_login()
                 self.__send(request.encode("ascii")+TELNET_LINE_ENDING.encode("ascii"))
+                self.__relogin_try = False
             except StandardError,error:
+                self.__relogin_try = False
+                self.__pending_request = False
                 raise NameError("no connection possible or other exception: "+str(error))
         
         data = self.__receive()
         if self.__reSearch("^250 ", data) == None and complainIfAnswerNot250:
+            self.__pending_request = False
             raise NameError("Error while sending request: " + request + "\nresponse from NET-IO 230A is:  " + data.replace(TELNET_LINE_ENDING,''))
         else:
-            data=data.decode("ascii")
-            return data.replace("250 ","").replace(TELNET_LINE_ENDING,"")
+            data = data.decode("ascii")
+            data = data.replace("250 ","").replace(TELNET_LINE_ENDING,"")
+            self.__wait_for_request_time = ( self.__number_of_sent_requests*self.__wait_for_request_time + (time.time()-starting_time) ) / (self.__number_of_sent_requests + 1)
+            self.__number_of_sent_requests += 1
+            self.__pending_request = False
+            return data
     
     def disconnect(self):
         try:
