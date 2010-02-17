@@ -15,6 +15,9 @@ Class
 GUI
 ---
 
+* show an error message when almost all requests fail
+  (depending on the reason why they fail...). This may be:
+  "The NETIO-230A seems to be unavailable at the moment. Disconnecting."
 * more threading (when changing from one tab to another, we want to do see
   status updates - YES. But first change to that tab and then do the update.)
 * save information in a configuration file:
@@ -42,4 +45,5 @@ Allready Implemented
 * logging capabilities for the class added (the GUI makes use of it)
 * link to open the devices website with a single click on the GUI
 * concurrent access to the netio230a library secured (by waiting for the other request or throwing an exception)
+* possibility to choose between persistent networking and loose coupled network sockets on the GUI connection dialog
 
