@@ -5,7 +5,7 @@
   <object class="GtkWindow" id="mainWindow">
     <property name="width_request">450</property>
     <property name="height_request">300</property>
-    <property name="title" translatable="yes">NETIO 230A control</property>
+    <property name="title" translatable="yes">NETIO-230A control</property>
     <property name="resizable">False</property>
     <property name="window_position">mouse</property>
     <signal name="destroy" handler="gtk_main_quit"/>
@@ -19,7 +19,7 @@
             <child>
               <object class="GtkMenuItem" id="menuitem2">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">_NETIO 230A</property>
+                <property name="label" translatable="yes">_NETIO-230A</property>
                 <property name="use_underline">True</property>
                 <child type="submenu">
                   <object class="GtkMenu" id="menu2">
@@ -104,7 +104,7 @@
                 </child>
                 <child>
                   <object class="GtkTextView" id="status_output">
-                    <property name="height_request">200</property>
+                    <property name="height_request">170</property>
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
                     <property name="can_focus">True</property>
@@ -469,6 +469,41 @@
             <property name="position">1</property>
           </packing>
         </child>
+        <child>
+          <object class="GtkHBox" id="hbox5">
+            <property name="visible">True</property>
+            <property name="spacing">2</property>
+            <child>
+              <object class="GtkLinkButton" id="link_button">
+                <property name="label" translatable="yes">Open NETIO-230A Website in Browser</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="tooltip_text" translatable="yes">This website is only going to be displayed if you are on the same (local) network as the NETIO-230A. Otherwise you would have to forward the webserver port (80) on your router to the NETIO-230A.</property>
+                <property name="relief">none</property>
+                <property name="xalign">0</property>
+                <property name="uri">http://koukaam.se</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="status_label">
+                <property name="visible">True</property>
+                <property name="xalign">1</property>
+              </object>
+              <packing>
+                <property name="padding">4</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="position">2</property>
+          </packing>
+        </child>
       </object>
     </child>
   </object>
@@ -479,7 +514,7 @@
     <property name="version">v1.0</property>
     <property name="copyright" translatable="yes">(c) 2009-2010 by Philipp Klaus
 Licensed under the GPL.</property>
-    <property name="comments" translatable="yes">This software helps you access and configure your Koukaam NETIO 230A.</property>
+    <property name="comments" translatable="yes">This software helps you access and configure your Koukaam NETIO-230A.</property>
     <property name="website">http://pklaus.github.com/netio230a/</property>
     <property name="license" translatable="yes">                    GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007

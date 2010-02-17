@@ -57,6 +57,7 @@ from datetime import datetime
 
 TELNET_LINE_ENDING = "\r\n"
 TELNET_SOCKET_TIMEOUT = 5
+INITIAL_WAIT_FOR_OTHER_REQUEST = 0.013 # 13 ms to wait for other requests (on first request), this is my mean value for 1000 requests
 
 class netio230a(object):
     """netio230a is the basic class that you want to instantiate when communicating
@@ -72,6 +73,11 @@ class netio230a(object):
             secureLogin bool value specifying whether to use a hashed or a cleartext login. True is hightly recommended for insecure networks!
             customTCPPort  integer specifying which port to connect to, defaul: 23 (NETIO-230A must be reachable via KSHELL/telnet via hostname:customTCPPort)
         """
+        self.logging = False
+        self.__pending_request = False
+        self.__relogin_try = False
+        self.wait_for_request_time = INITIAL_WAIT_FOR_OTHER_REQUEST
+        self.number_of_sent_requests = 0
         self.__host = host
         self.__username = username
         self.__password = password
@@ -81,13 +87,13 @@ class netio230a(object):
         self.__power_sockets = [ PowerSocket() for i in range(4) ]
         self.__create_socket_and_login()
     
-    def __create_socket_and_login(self):
+    def __create_socket_and_login(self, relogin_try=False):
         # create a TCP/IP socket
         self.__s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.__s.settimeout(TELNET_SOCKET_TIMEOUT)
-        self.__login()
+        self.__login(relogin_try)
  
-    def __login(self):
+    def __login(self, relogin_try=False):
         """Login to the server using the credentials given to the constructor.
            Note that this is a private method called by the constructor
            (so all connection details are set already)."""
@@ -95,18 +101,20 @@ class netio230a(object):
         try:
             self.__s.connect((self.__host, self.__tcp_port))
             # wait for the answer
-            data = self.__s.recv(self.__bufsize)
+            data = self.__receive()
         except StandardError, error:
             if type(error) == socket.timeout:
                 raise NameError("Timeout while connecting to " + self.__host)
                 #print("There was a timeout")
             elif type(error) == socket.gaierror or type(error) == socket.error and error.errno == errno.ENETUNREACH:
-                raise NameError("Unable to understand the host you gave: %s. Please give a correct IP address or domain name." % self.__host)
+                raise NameError("Unable to understand the host you gave: %s. Please provide a correct IP address or domain name." % self.__host)
             elif type(error) == socket.error:
                 if error.errno == errno.ECONNREFUSED:
-                    raise NameError("The connection was refused by the remote host.\nPossible errors: wrong IP or wrong TCP port given or the telnet server on the NETIO-230A crashed.")
+                    raise NameError("The connection was refused by the remote host. Possible errors: wrong IP or wrong TCP port given or the telnet server on the NETIO-230A crashed.")
                 elif error.errno == errno.EHOSTUNREACH:
                     raise NameError("There is no route to the host given: " + self.__host)
+                elif error.errno == errno.ECONNRESET:
+                    raise NameError("The connection was reset by the device. This is usually the case when you still have another network socket connected to the device. It may also be the case when the telnet server on the device crashed. In this case reboot the device (if possible & sensible).")
                 
             # in any other case just hand on the risen error:
             raise error
@@ -127,13 +135,37 @@ class netio230a(object):
             loginString = "login " + self.__username + " " + self.__password + TELNET_LINE_ENDING
         try:
             # send login string and wait for the answer
-            response = self.__sendRequest(loginString)
+            response = self.__sendRequest(loginString, True, relogin_try)
+        except NameError, error:
+            self.disconnect()
+            try:
+                problem = str(error).partition('\n\n')[2]
+            except:
+                problem = "?"
+            if problem.find("502 UNKNOWN COMMAND") != -1:
+                raise NameError("Error while connecting: Login failed with message 502 UNKNOWN COMMAND. This is usually the case when the telnet server crashed. Reboot the NETIO-230A device to get it up running again.")
+            elif problem.find("501 INVALID PARAMETER") != -1:
+                raise NameError("Error while connecting: Login failed with message 501 INVALID PARAMETER. This is usually the case when the telnet server crashed. Reboot the NETIO-230A device to get it up running again.")
+            else:
+                raise NameError("Error while connecting: Login failed; " + str(error).partition('\n\n')[2])
         except StandardError, error:
             self.disconnect()
-            raise NameError("Error while connecting: Login failed; " + str(error).partition('\n\n')[2])
+            raise NameError("Error while connecting: Login failed; " + str(error))
 
     def __reSearch(self, regexp, data):
         return re.search(regexp.encode("ascii"), data)
+
+    def enable_logging(self, log_file):
+        self.logging = True
+        self.log_file = log_file
+        try:
+            self.log("Logging started on %s." % datetime.now().isoformat())
+        except StandardError, error:
+            self.logging = True
+            raise error
+
+    def log(self, message, line_break=True):
+        self.log_file.write(message + ("\n" if line_break else "" ))
 
     def getPowerSocketList(self):
         """Sends request to the NETIO 230A to ask for the power socket status.
@@ -265,27 +297,52 @@ class netio230a(object):
             #still missing: setWatchdogOn
     
     # generic method to send requests to the NET-IO 230A and checking the response
-    def __sendRequest(self,request,complainIfAnswerNot250=True):
+    def __sendRequest(self,request,complainIfAnswerNot250=True, relogin_try=False):
+        counter = 0
+        # in this loop we want to avoid errors for concurrent requests (from different threads etc.)
+        while self.__pending_request and not relogin_try:
+            time.sleep(self.wait_for_request_time*2)
+            counter += 1
+            if self.logging:
+                self.log("Waiting for an other request to finish. Average time for processes to finish is %.6f after a total number of %d requests." % (self.wait_for_request_time, self.number_of_sent_requests) )
+            if counter > 5:
+                # after 5 failed tries, we give up.
+                raise NameError("Sorry, some other process is sending a request you cannot send yours now.")
+        # set the lock for our request (and therefore block other requests for now)
+        self.__pending_request = True
+        starting_time = time.time()
         try:
-            self.__s.send(request.encode("ascii")+TELNET_LINE_ENDING.encode("ascii"))
+            self.__send(request.encode("ascii")+TELNET_LINE_ENDING.encode("ascii"))
         except:
             try:
-                self.__create_socket_and_login()
-                self.__s.send(request.encode("ascii")+TELNET_LINE_ENDING.encode("ascii"))
+                self.__create_socket_and_login(True)
+                self.__send(request.encode("ascii")+TELNET_LINE_ENDING.encode("ascii"))
             except StandardError,error:
+                self.__pending_request = False
                 raise NameError("no connection possible or other exception: "+str(error))
+            except:
+                self.__pending_request = False
+        try:
+            data = self.__receive()
+        except:
+            self.__pending_request = False
         
-        data = self.__s.recv(self.__bufsize)
         if self.__reSearch("^250 ", data) == None and complainIfAnswerNot250:
+            self.__pending_request = False
             raise NameError("Error while sending request: " + request + "\nresponse from NET-IO 230A is:  " + data.replace(TELNET_LINE_ENDING,''))
         else:
-            data=data.decode("ascii")
-            return data.replace("250 ","").replace(TELNET_LINE_ENDING,"")
+            data = data.decode("ascii")
+            data = data.replace("250 ","").replace(TELNET_LINE_ENDING,"")
+            self.wait_for_request_time = ( self.number_of_sent_requests*self.wait_for_request_time + (time.time()-starting_time) ) / (self.number_of_sent_requests + 1)
+            self.number_of_sent_requests += 1
+            self.__pending_request = False
+            return data
     
     def disconnect(self):
         try:
             # send the quit command to the box (if we have an open connection):
-            self.__s.send("quit".encode("ascii")+TELNET_LINE_ENDING.encode("ascii"))
+            self.__send("quit".encode("ascii")+TELNET_LINE_ENDING.encode("ascii"))
+            self.__receive()  # should give  110 BYE
         except:
             pass
         # close the socket (if it is still open):
@@ -295,6 +352,16 @@ class netio230a(object):
         self.disconnect()
     ###   end of class netio230a   ----------------
 
+    def __send(self, data):
+        if self.logging:
+            self.log(data, False)
+        self.__s.send(data)
+
+    def __receive(self):
+        response = self.__s.recv(self.__bufsize)
+        if self.logging:
+            self.log(response, False)
+        return response
 
 
 class PowerSocket(object):

@@ -35,10 +35,35 @@ import netio230a
 # to store and retrieve recent connections:
 import configuration
 
+import gobject # for the timer
+import signal # for [Ctrl]-[c] catching
 
 PROGRAM_ICON = 'netio230a_icon.png'
 DEVICE_CONTROLLER_UI = "netio230aGUI.glade"
 CONNECTION_DETAIL_UI = "netio230aGUI_dialog.glade"
+
+AUTO_UPDATE = 3 # auto update time seconds
+
+OVERWRITE_TELNET_SOCKET_TIMEOUT = 2
+
+
+DEBUG_MODE = True
+MIN_DEBUG_LEVEL = 7
+
+
+# constants do not touch:
+DBG_WARNING = 8
+
+
+# remember position of window:
+#    (x, y) = w.get_position()
+#    (w, h) = w.get_size()
+#
+#restore position:
+#    w = gtk.Window()
+#    w.move(x, y)
+#    w.resize(w, h)
+
 
 def getAbsoluteFilepath(filename):
     fullpath = os.path.abspath(os.path.dirname(sys.argv[0]))
@@ -67,20 +92,49 @@ class DeviceController:
         self.__pw = connection_details['password']
         try:
             self.netio = netio230a.netio230a(self.__host, self.__username, self.__pw, True, self.__tcp_port)
+            self.netio.enable_logging(open(configuration.LOG_FILE,'w'))
         except StandardError, error:
-            print str(error)
+            print(str(error))
         
         self.builder = gtk.Builder()
         self.builder.add_from_file(getAbsoluteFilepath(DEVICE_CONTROLLER_UI))
         
         self.window = self.builder.get_object("mainWindow")
         self.window.set_icon_from_file(getAbsoluteFilepath(PROGRAM_ICON))
-        
+        self.builder.get_object("link_button").set_uri('http://'+self.__host)
         
         self.updateLabels()
         self.updatePowerSocketStatus()
         self.builder.connect_signals(self)
+        self.window.connect("window-state-event",self.handle_window_state_events)
         self.window.show()
+        
+        # a timer to update the UI automatically
+        self.timer_id = gobject.timeout_add(1000, self.timer_tick) # use gobject.timeout_add_seconds() for longer periods
+        self.timer_continue = True
+        self.counter = 0
+    
+    
+    def timer_tick(self):
+        if self.timer_id is not None and self.timer_continue:
+            self.counter += 1
+            if self.counter%AUTO_UPDATE == 0:
+                try:
+                    self.updatePowerSocketStatus()
+                except StandardError, error:
+                    pass
+                    debug("The updatePowerSocketStatus action triggered by the timer failed: " + str(error), DBG_WARNING)
+                self.counter = 0
+            return True # run again in one second
+        return False # stop running again
+    
+    def handle_window_state_events(self, window, event):
+        if event.changed_mask & gtk.gdk.WINDOW_STATE_ICONIFIED:
+            if event.new_window_state & gtk.gdk.WINDOW_STATE_ICONIFIED:
+                #print 'Window was minimized!'
+                self.controller.toggle_visibility()
+            #else:
+            #    print 'Window was unminimized!'
     
     def cb_disconnect(self, button, *args):
         self.controller.setNextStep("runDeviceSelector")
@@ -99,10 +153,12 @@ class DeviceController:
         about.run()
         
     def cb_updateDisplay(self, notebook, page, page_num):
+        self.updateStatusBar()
         if page_num == 0:
             self.updatePowerSocketStatus()
         elif page_num == 1:
             self.updateSystemSetup()
+            pass
         elif page_num == 2:
             self.updatePowerSocketStatus()
         else:
@@ -117,7 +173,7 @@ class DeviceController:
         except StandardError, error:
             print(str(error))
             return
-        self.netio.disconnect()
+        #self.netio.disconnect()
         
         # update checkboxes on this GUI and on the status icon:
         i = 1
@@ -133,6 +189,10 @@ class DeviceController:
         tb = gtk.TextBuffer()
         tb.set_text("power status:\nsocket 1: %s\nsocket 2: %s\nsocket 3: %s\nsocket 4: %s" % (power_sockets[0].getPowerOn(),power_sockets[1].getPowerOn(),power_sockets[2].getPowerOn(),power_sockets[3].getPowerOn()))
         self.builder.get_object("status_output").set_buffer( tb )
+        self.updateStatusBar()
+
+    def updateStatusBar(self):
+        self.builder.get_object("status_label").set_text(u"ø %.1f ms/request (%d total)" % (self.netio.wait_for_request_time*1000, self.netio.number_of_sent_requests))
     
     def updateLabels(self):
         try:
@@ -140,7 +200,7 @@ class DeviceController:
         except StandardError, error:
             print(str(error))
             return
-        self.netio.disconnect()
+        #self.netio.disconnect()
         for i in range(4):
             label_name = "socket"+str(i+1)+"_label"
             self.builder.get_object(label_name).set_text(self.builder.get_object(label_name).get_text()+' ("'+power_sockets[i].getName()+'")')
@@ -157,7 +217,7 @@ class DeviceController:
         except StandardError, error:
             print(str(error))
             return
-        self.netio.disconnect()
+        #self.netio.disconnect()
         self.builder.get_object("device_name").set_text( deviceAlias )
         self.builder.get_object("firmware_version").set_text( version )
         self.builder.get_object("system_time").set_text( systemTime )
@@ -182,7 +242,7 @@ class DeviceController:
             self.netio.setPowerSocketPower(socket_nr,socket_power)
         except StandardError, error:
             print(str(error))
-        self.netio.disconnect()
+        #self.netio.disconnect()
         self.updatePowerSocketStatus()
 
 class ConnectionDetailDialog:
@@ -190,6 +250,8 @@ class ConnectionDetailDialog:
         self.builder = gtk.Builder()
         self.builder.add_from_file(getAbsoluteFilepath(CONNECTION_DETAIL_UI))
         self.dialog = self.builder.get_object("ConnectionDetailDialog")
+        self.dialog.set_title("Provide connection details...")
+        self.dialog.set_icon_from_file(getAbsoluteFilepath(PROGRAM_ICON))
         # pre-fill values of text entries
         self.builder.get_object("host_text").set_text(host)
         self.builder.get_object("port_text").set_text(str(port))
@@ -256,51 +318,67 @@ class DeviceSelector:
         self.window.set_title("Select a Device")
         self.window.set_icon_from_file(getAbsoluteFilepath(PROGRAM_ICON))
 
-        self.window.set_size_request(320, 150)
+        self.window.set_size_request(470, 220)
         self.window.connect("delete_event", self.delete_event)
 
         # create a TreeStore with two string columns to use as the model
-        self.treestore = gtk.TreeStore(str,str,int,str,str)
+        self.treestore = gtk.TreeStore(str,str,str,str,str)
 
         devices = netio230a.get_all_detected_devices()
         if len(devices) > 0:
-            self.auto_iter = self.treestore.append(None,['auto-detected devices','',0,'',''])
+            self.auto_iter = self.treestore.append(None,['auto-detected devices','','','',''])
         else:
-            self.treestore.append(None,['no auto-detected devices','',0,'',''])
+            self.treestore.append(None,['no auto-detected devices','','','',''])
         for device in devices:
-            self.treestore.append(self.auto_iter,[device[0],str(device[1][0])+'.'+str(device[1][1])+'.'+str(device[1][2])+'.'+str(device[1][3]),0,'',''])
+            #   device name, IP, port, user, password
+            self.treestore.append(self.auto_iter,[device[0],str(device[1][0])+'.'+str(device[1][1])+'.'+str(device[1][2])+'.'+str(device[1][3]),'','',''])
         
         # devices from configuration has the form [devicename, host, port, username, password]
         devices = configuration.getConfiguration()
         if len(devices) > 0:
-            self.recently_iter = self.treestore.append(None,['previously used devices','',0,'',''])
+            self.recently_iter = self.treestore.append(None,['previously used devices','','','',''])
         for device in devices:
-            self.treestore.append(self.recently_iter,[device[0],device[1],device[2],device[3],device[4]])
+            #   device name, IP, port, user, password
+            self.treestore.append(self.recently_iter,[device[0],device[1],str(device[2]),device[3],device[4]])
         
         # more on TreeViews: <http://www.thesatya.com/blog/2007/10/pygtk_treeview.html>
         # and <http://www.pygtk.org/pygtk2tutorial/ch-TreeViewWidget.html#sec-TreeViewOverview>
         # create the TreeView using treestore
         self.treeview = gtk.TreeView(self.treestore)
         # create the TreeViewColumn to display the data
-        self.tvcolumn = gtk.TreeViewColumn('Device Name')
-        self.tvcolumn1 = gtk.TreeViewColumn('IP Address')
+        self.tvc_device_name = gtk.TreeViewColumn('Device Name')
+        self.tvc_ip = gtk.TreeViewColumn('IP Address')
+        self.tvc_tcp_port = gtk.TreeViewColumn('TCP Port')
+        self.tvc_user_name = gtk.TreeViewColumn('User Name')
+        # set alignment of the column titles to right
+        #self.tvc_ip.set_alignment(1.0)
+        #self.tvc_tcp_port.set_alignment(1.0)
         # add tvcolumn to treeview
-        self.treeview.append_column(self.tvcolumn)
-        self.treeview.append_column(self.tvcolumn1)
+        self.treeview.append_column(self.tvc_device_name)
+        self.treeview.append_column(self.tvc_ip)
+        self.treeview.append_column(self.tvc_tcp_port)
+        self.treeview.append_column(self.tvc_user_name)
         # create a CellRendererText to render the data
         self.cell = gtk.CellRendererText()
+        self.cell_right_align = gtk.CellRendererText()
+        self.cell_right_align.set_property('xalign', 1.0)
         # add the cell to the tvcolumn and allow it to expand
-        self.tvcolumn.pack_start(self.cell, True)
-        self.tvcolumn1.pack_start(self.cell, True)
-        # set the cell "text" attribute to column 0 - retrieve text
-        # from that column in treestore
-        self.tvcolumn.add_attribute(self.cell, 'text', 0)
-        self.tvcolumn1.add_attribute(self.cell, 'text', 1)
+        self.tvc_device_name.pack_start(self.cell, True)
+        self.tvc_ip.pack_start(self.cell_right_align, True)
+        self.tvc_tcp_port.pack_start(self.cell_right_align, True)
+        self.tvc_user_name.pack_start(self.cell, True)
+        # set the cell "text" attribute to column 0 - retrieve text from that column in treestore
+        self.tvc_device_name.add_attribute(self.cell, 'text', 0)
+        self.tvc_ip.add_attribute(self.cell_right_align, 'text', 1)
+        self.tvc_tcp_port.add_attribute(self.cell_right_align, 'text', 2)
+        self.tvc_user_name.add_attribute(self.cell, 'text', 3)
         # make it searchable
         self.treeview.set_search_column(0)
         # Allow sorting on the column
-        self.tvcolumn.set_sort_column_id(0)
-        self.tvcolumn1.set_sort_column_id(1)
+        self.tvc_device_name.set_sort_column_id(0)
+        self.tvc_ip.set_sort_column_id(1)
+        self.tvc_tcp_port.set_sort_column_id(2)
+        self.tvc_user_name.set_sort_column_id(3)
         # Allow drag and drop reordering of rows
         self.treeview.set_reorderable(True)
         self.treeview.expand_all()
@@ -367,30 +445,35 @@ class DeviceSelector:
                 #    print 'Lieber nicht.'
                 #dlg.destroy()
         if stored_connection:
-            dl = ConnectionDetailDialog(host, username, password, tcp_port, stored_connection, store_password)
+            self.dl = ConnectionDetailDialog(host, username, password, tcp_port, stored_connection, store_password)
         else:
-            dl = ConnectionDetailDialog(host)
-        result = dl.run()
+            self.dl = ConnectionDetailDialog(host)
+        self.controller.deny_quit = True
+        result = self.dl.run()
+        self.controller.deny_quit = False
         while result == 1:
-            data = dl.getData()
+            data = self.dl.getData()
             try:
                 netio = netio230a.netio230a(data['host'], data['username'], data['password'], True, data['tcp_port'])
                 devicename = netio.getDeviceAlias()
                 netio = None
                 break
             except StandardError, error:
+                print(str(error))
                 netio = None
-                continue_abort = gtk.MessageDialog(parent=dl.dialog, flags=gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT, type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_OK_CANCEL, message_format="Connection failed. \n\n"+str(error)+"\n\nChange connection details and try again?")
+                continue_abort = gtk.MessageDialog(parent=self.dl.dialog, flags=gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT, type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_OK_CANCEL, message_format="Connection failed. \n\n"+str(error)+"\n\nChange connection details and try again?")
                 response = continue_abort.run()
                 continue_abort.destroy()
                 if response == gtk.RESPONSE_OK:
-                    result = dl.run()
+                    self.controller.deny_quit = True
+                    result = self.dl.run()
+                    self.controller.deny_quit = False
                 else:
                     result = 0
                     break
         
-        dl.dialog.hide()
-        del dl
+        self.dl.dialog.hide()
+        del self.dl
         if result != 1:
             return
         
@@ -451,7 +534,7 @@ class TrayIcon(gtk.StatusIcon):
             #('Search', None, '_Search...', None, 'Search files with MetaTracker', self.on_activate),
             ('ConnectNote', None, ' - please connect first... - ', None, 'Please connect to a NETIO-230A device to be able to power on/off sockets.', self.on_toggle),
             ('About', gtk.STOCK_ABOUT, '_About...', None, 'About NETIO-230A control', self.on_about),
-            ('Quit', gtk.STOCK_QUIT, '_Quit', None, 'Quit the program', gtk.main_quit),]
+            ('Quit', gtk.STOCK_QUIT, '_Quit', None, 'Quit the program', self.quit),]
         ag = gtk.ActionGroup('Actions')
         ag.add_actions(actions)
         self.manager = gtk.UIManager()
@@ -472,6 +555,8 @@ class TrayIcon(gtk.StatusIcon):
         self.block_changes = True
         for socket in new_status:
             menu_item = self.manager.get_widget('/Menubar/Menu/Socket' + str(i))
+            if menu_item == None:
+                continue
             menu_item.set_label("_%d: %s" % (i, socket[0]))
             menu_item.set_active(socket[1])
             i += 1
@@ -500,7 +585,7 @@ class TrayIcon(gtk.StatusIcon):
             #('Search', None, '_Search...', None, 'Search files with MetaTracker', self.on_activate),
             #('Preferences', gtk.STOCK_PREFERENCES, '_Preferences...', None, 'Change MetaTracker preferences', self.on_preferences),
             ('About', gtk.STOCK_ABOUT, '_About...', None, 'About NETIO-230A control', self.on_about),
-            ('Quit', gtk.STOCK_QUIT, '_Quit', None, 'Quit the program', gtk.main_quit),]
+            ('Quit', gtk.STOCK_QUIT, '_Quit', None, 'Quit the program', self.quit),]
         toggle_actions = [
             ('Socket1', None, '_1: Toggle Socket 1', None, 'Switch power socket 1 on or off.', self.on_toggle,True),
             ('Socket2', None, '_2: Toggle Socket 2', None, 'Switch power socket 2 on or off.', self.on_toggle),
@@ -519,6 +604,12 @@ class TrayIcon(gtk.StatusIcon):
         #search.get_children()[0].set_use_markup(True)
         #search.get_children()[1].set_from_stock(gtk.STOCK_FIND, gtk.ICON_SIZE_MENU)
 
+    def quit(self, widget):
+        if self.controller.deny_quit:
+            self.controller.quit_requested()
+        else:
+            gtk.main_quit()
+
     def on_activate(self, data):
         #print("ok, here we want to toggle the visibility of the program...")
         self.controller.toggle_visibility()
@@ -534,7 +625,7 @@ class TrayIcon(gtk.StatusIcon):
             try:
                 #print("toggeling " + socket_name[6])
                 self.controller.topical_window.netio.togglePowerSocketPower(int(socket_name[6]))
-                self.controller.topical_window.netio.disconnect()
+                #self.controller.topical_window.netio.disconnect()
                 self.controller.topical_window.updatePowerSocketStatus()
             except:
                 #print("sorry, log in first.")
@@ -558,16 +649,21 @@ class Controller(object):
     def run(self):
         self.nextStep = "runDeviceSelector"
         self.visible = True
+        self.deny_quit = False
         self.icon = TrayIcon(self)
         while self.nextStep != "":
             if self.nextStep == "runDeviceSelector":
                 self.nextStep = ""
-                self.icon.set_disconnected_ui()
                 self.runDeviceSelector()
             elif self.nextStep == "runDeviceController":
                 self.nextStep = ""
-                self.icon.set_connected_ui()
                 self.runDeviceController(self.nextStepKWArgs)
+    
+    def quit_requested(self):
+        try:
+            self.topical_window.dl.dialog.present()
+        except:
+            pass
     
     def toggle_visibility(self):
         if self.visible == True:
@@ -582,18 +678,29 @@ class Controller(object):
         self.nextStepKWArgs = kwargs
     
     def runDeviceSelector(self):
+        self.icon.set_disconnected_ui()
         self.topical_window = DeviceSelector(self)
         gtk.main()
+        del self.topical_window
     
     def runDeviceController(self, connection_details):
+        self.icon.set_connected_ui()
         self.topical_window = DeviceController(self, connection_details)
         gtk.main()
+        self.topical_window.timer_continue = False
+        del self.topical_window.netio
 
+def debug(message, level):
+    if DEBUG_MODE and level > DEBUG_LEVEL:
+        print(message)
 
 def main():
     controller = Controller()
     controller.run()
 
 if __name__ == "__main__":
+    signal.signal(signal.SIGINT, signal.SIG_DFL) # ^C exits the application
+    netio230a.TELNET_SOCKET_TIMEOUT = OVERWRITE_TELNET_SOCKET_TIMEOUT
+    
     main()
 
