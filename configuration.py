@@ -63,7 +63,9 @@ def changeConfiguration(action, devicename, host, port, username, password):
         elif action == REMOVE:
             if old_device != None:
                 configuration.remove(old_device)
-            
+        
+        configuration.sort(key=sort_configuration)
+        configuration.reverse()
         outfile = open(CONFIGURATION_FILE,'w')
         json.dump(configuration,outfile)
         outfile.close()
@@ -71,6 +73,10 @@ def changeConfiguration(action, devicename, host, port, username, password):
     except StandardError, error:
         print str(error)
         return False
+
+
+def sort_configuration(config_row):
+    return config_row[5]
 
 def getConfiguration():
     try:

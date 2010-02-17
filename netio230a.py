@@ -76,8 +76,8 @@ class netio230a(object):
         self.logging = False
         self.__pending_request = False
         self.__relogin_try = False
-        self.__wait_for_request_time = INITIAL_WAIT_FOR_OTHER_REQUEST
-        self.__number_of_sent_requests = 0
+        self.wait_for_request_time = INITIAL_WAIT_FOR_OTHER_REQUEST
+        self.number_of_sent_requests = 0
         self.__host = host
         self.__username = username
         self.__password = password
@@ -87,13 +87,13 @@ class netio230a(object):
         self.__power_sockets = [ PowerSocket() for i in range(4) ]
         self.__create_socket_and_login()
     
-    def __create_socket_and_login(self):
+    def __create_socket_and_login(self, relogin_try=False):
         # create a TCP/IP socket
         self.__s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.__s.settimeout(TELNET_SOCKET_TIMEOUT)
-        self.__login()
+        self.__login(relogin_try)
  
-    def __login(self):
+    def __login(self, relogin_try=False):
         """Login to the server using the credentials given to the constructor.
            Note that this is a private method called by the constructor
            (so all connection details are set already)."""
@@ -107,14 +107,14 @@ class netio230a(object):
                 raise NameError("Timeout while connecting to " + self.__host)
                 #print("There was a timeout")
             elif type(error) == socket.gaierror or type(error) == socket.error and error.errno == errno.ENETUNREACH:
-                raise NameError("Unable to understand the host you gave: %s. Please give a correct IP address or domain name." % self.__host)
+                raise NameError("Unable to understand the host you gave: %s. Please provide a correct IP address or domain name." % self.__host)
             elif type(error) == socket.error:
                 if error.errno == errno.ECONNREFUSED:
-                    raise NameError("The connection was refused by the remote host.\nPossible errors: wrong IP or wrong TCP port given or the telnet server on the NETIO-230A crashed.")
+                    raise NameError("The connection was refused by the remote host. Possible errors: wrong IP or wrong TCP port given or the telnet server on the NETIO-230A crashed.")
                 elif error.errno == errno.EHOSTUNREACH:
                     raise NameError("There is no route to the host given: " + self.__host)
                 elif error.errno == errno.ECONNRESET:
-                    raise NameError("The connection was reset by the device. This is usually the case when the Telnet Server on the device crashed or if the device still has another open network socket. Try to reboot the device (if possible).")
+                    raise NameError("The connection was reset by the device. This is usually the case when you still have another network socket connected to the device. It may also be the case when the telnet server on the device crashed. In this case reboot the device (if possible & sensible).")
                 
             # in any other case just hand on the risen error:
             raise error
@@ -135,7 +135,7 @@ class netio230a(object):
             loginString = "login " + self.__username + " " + self.__password + TELNET_LINE_ENDING
         try:
             # send login string and wait for the answer
-            response = self.__sendRequest(loginString)
+            response = self.__sendRequest(loginString, True, relogin_try)
         except NameError, error:
             self.disconnect()
             try:
@@ -144,6 +144,8 @@ class netio230a(object):
                 problem = "?"
             if problem.find("502 UNKNOWN COMMAND") != -1:
                 raise NameError("Error while connecting: Login failed with message 502 UNKNOWN COMMAND. This is usually the case when the telnet server crashed. Reboot the NETIO-230A device to get it up running again.")
+            elif problem.find("501 INVALID PARAMETER") != -1:
+                raise NameError("Error while connecting: Login failed with message 501 INVALID PARAMETER. This is usually the case when the telnet server crashed. Reboot the NETIO-230A device to get it up running again.")
             else:
                 raise NameError("Error while connecting: Login failed; " + str(error).partition('\n\n')[2])
         except StandardError, error:
@@ -295,14 +297,14 @@ class netio230a(object):
             #still missing: setWatchdogOn
     
     # generic method to send requests to the NET-IO 230A and checking the response
-    def __sendRequest(self,request,complainIfAnswerNot250=True):
+    def __sendRequest(self,request,complainIfAnswerNot250=True, relogin_try=False):
         counter = 0
         # in this loop we want to avoid errors for concurrent requests (from different threads etc.)
-        while self.__pending_request and not self.__relogin_try:
-            time.sleep(self.__wait_for_request_time*2)
+        while self.__pending_request and not relogin_try:
+            time.sleep(self.wait_for_request_time*2)
             counter += 1
             if self.logging:
-                self.log("Waiting for an other request to finish. Average time for processes to finish is %.6f after a total number of %d requests." % (self.__wait_for_request_time, self.__number_of_sent_requests) )
+                self.log("Waiting for an other request to finish. Average time for processes to finish is %.6f after a total number of %d requests." % (self.wait_for_request_time, self.number_of_sent_requests) )
             if counter > 5:
                 # after 5 failed tries, we give up.
                 raise NameError("Sorry, some other process is sending a request you cannot send yours now.")
@@ -313,24 +315,26 @@ class netio230a(object):
             self.__send(request.encode("ascii")+TELNET_LINE_ENDING.encode("ascii"))
         except:
             try:
-                self.__relogin_try = True
-                self.__create_socket_and_login()
+                self.__create_socket_and_login(True)
                 self.__send(request.encode("ascii")+TELNET_LINE_ENDING.encode("ascii"))
-                self.__relogin_try = False
             except StandardError,error:
-                self.__relogin_try = False
                 self.__pending_request = False
                 raise NameError("no connection possible or other exception: "+str(error))
+            except:
+                self.__pending_request = False
+        try:
+            data = self.__receive()
+        except:
+            self.__pending_request = False
         
-        data = self.__receive()
         if self.__reSearch("^250 ", data) == None and complainIfAnswerNot250:
             self.__pending_request = False
             raise NameError("Error while sending request: " + request + "\nresponse from NET-IO 230A is:  " + data.replace(TELNET_LINE_ENDING,''))
         else:
             data = data.decode("ascii")
             data = data.replace("250 ","").replace(TELNET_LINE_ENDING,"")
-            self.__wait_for_request_time = ( self.__number_of_sent_requests*self.__wait_for_request_time + (time.time()-starting_time) ) / (self.__number_of_sent_requests + 1)
-            self.__number_of_sent_requests += 1
+            self.wait_for_request_time = ( self.number_of_sent_requests*self.wait_for_request_time + (time.time()-starting_time) ) / (self.number_of_sent_requests + 1)
+            self.number_of_sent_requests += 1
             self.__pending_request = False
             return data
     

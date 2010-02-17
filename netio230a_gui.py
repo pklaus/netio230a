@@ -44,6 +44,16 @@ CONNECTION_DETAIL_UI = "netio230aGUI_dialog.glade"
 
 AUTO_UPDATE = 3 # auto update time seconds
 
+OVERWRITE_TELNET_SOCKET_TIMEOUT = 2
+
+
+DEBUG_MODE = True
+MIN_DEBUG_LEVEL = 7
+
+
+# constants do not touch:
+DBG_WARNING = 8
+
 
 # remember position of window:
 #    (x, y) = w.get_position()
@@ -101,18 +111,22 @@ class DeviceController:
         
         # a timer to update the UI automatically
         self.timer_id = gobject.timeout_add(1000, self.timer_tick) # use gobject.timeout_add_seconds() for longer periods
+        self.timer_continue = True
         self.counter = 0
     
     
     def timer_tick(self):
-        if self.timer_id is not None:
+        if self.timer_id is not None and self.timer_continue:
             self.counter += 1
             if self.counter%AUTO_UPDATE == 0:
-                self.updatePowerSocketStatus()
+                try:
+                    self.updatePowerSocketStatus()
+                except StandardError, error:
+                    pass
+                    debug("The updatePowerSocketStatus action triggered by the timer failed: " + str(error), DBG_WARNING)
                 self.counter = 0
             return True # run again in one second
         return False # stop running again
-
     
     def handle_window_state_events(self, window, event):
         if event.changed_mask & gtk.gdk.WINDOW_STATE_ICONIFIED:
@@ -139,10 +153,12 @@ class DeviceController:
         about.run()
         
     def cb_updateDisplay(self, notebook, page, page_num):
+        self.updateStatusBar()
         if page_num == 0:
             self.updatePowerSocketStatus()
         elif page_num == 1:
             self.updateSystemSetup()
+            pass
         elif page_num == 2:
             self.updatePowerSocketStatus()
         else:
@@ -157,7 +173,7 @@ class DeviceController:
         except StandardError, error:
             print(str(error))
             return
-        self.netio.disconnect()
+        #self.netio.disconnect()
         
         # update checkboxes on this GUI and on the status icon:
         i = 1
@@ -173,6 +189,10 @@ class DeviceController:
         tb = gtk.TextBuffer()
         tb.set_text("power status:\nsocket 1: %s\nsocket 2: %s\nsocket 3: %s\nsocket 4: %s" % (power_sockets[0].getPowerOn(),power_sockets[1].getPowerOn(),power_sockets[2].getPowerOn(),power_sockets[3].getPowerOn()))
         self.builder.get_object("status_output").set_buffer( tb )
+        self.updateStatusBar()
+
+    def updateStatusBar(self):
+        self.builder.get_object("status_label").set_text(u"ø %.1f ms/request (%d total)" % (self.netio.wait_for_request_time*1000, self.netio.number_of_sent_requests))
     
     def updateLabels(self):
         try:
@@ -180,7 +200,7 @@ class DeviceController:
         except StandardError, error:
             print(str(error))
             return
-        self.netio.disconnect()
+        #self.netio.disconnect()
         for i in range(4):
             label_name = "socket"+str(i+1)+"_label"
             self.builder.get_object(label_name).set_text(self.builder.get_object(label_name).get_text()+' ("'+power_sockets[i].getName()+'")')
@@ -197,7 +217,7 @@ class DeviceController:
         except StandardError, error:
             print(str(error))
             return
-        self.netio.disconnect()
+        #self.netio.disconnect()
         self.builder.get_object("device_name").set_text( deviceAlias )
         self.builder.get_object("firmware_version").set_text( version )
         self.builder.get_object("system_time").set_text( systemTime )
@@ -222,7 +242,7 @@ class DeviceController:
             self.netio.setPowerSocketPower(socket_nr,socket_power)
         except StandardError, error:
             print(str(error))
-        self.netio.disconnect()
+        #self.netio.disconnect()
         self.updatePowerSocketStatus()
 
 class ConnectionDetailDialog:
@@ -298,7 +318,7 @@ class DeviceSelector:
         self.window.set_title("Select a Device")
         self.window.set_icon_from_file(getAbsoluteFilepath(PROGRAM_ICON))
 
-        self.window.set_size_request(460, 220)
+        self.window.set_size_request(470, 220)
         self.window.connect("delete_event", self.delete_event)
 
         # create a TreeStore with two string columns to use as the model
@@ -439,8 +459,9 @@ class DeviceSelector:
                 netio = None
                 break
             except StandardError, error:
+                print(str(error))
                 netio = None
-                continue_abort = gtk.MessageDialog(parent=dl.dialog, flags=gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT, type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_OK_CANCEL, message_format="Connection failed. \n\n"+str(error)+"\n\nChange connection details and try again?")
+                continue_abort = gtk.MessageDialog(parent=self.dl.dialog, flags=gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT, type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_OK_CANCEL, message_format="Connection failed. \n\n"+str(error)+"\n\nChange connection details and try again?")
                 response = continue_abort.run()
                 continue_abort.destroy()
                 if response == gtk.RESPONSE_OK:
@@ -602,7 +623,7 @@ class TrayIcon(gtk.StatusIcon):
             try:
                 #print("toggeling " + socket_name[6])
                 self.controller.topical_window.netio.togglePowerSocketPower(int(socket_name[6]))
-                self.controller.topical_window.netio.disconnect()
+                #self.controller.topical_window.netio.disconnect()
                 self.controller.topical_window.updatePowerSocketStatus()
             except:
                 #print("sorry, log in first.")
@@ -629,11 +650,9 @@ class Controller(object):
         while self.nextStep != "":
             if self.nextStep == "runDeviceSelector":
                 self.nextStep = ""
-                self.icon.set_disconnected_ui()
                 self.runDeviceSelector()
             elif self.nextStep == "runDeviceController":
                 self.nextStep = ""
-                self.icon.set_connected_ui()
                 self.runDeviceController(self.nextStepKWArgs)
     
     def quit_requested(self):
@@ -655,13 +674,21 @@ class Controller(object):
         self.nextStepKWArgs = kwargs
     
     def runDeviceSelector(self):
+        self.icon.set_disconnected_ui()
         self.topical_window = DeviceSelector(self)
         gtk.main()
+        del self.topical_window
     
     def runDeviceController(self, connection_details):
+        self.icon.set_connected_ui()
         self.topical_window = DeviceController(self, connection_details)
         gtk.main()
+        self.topical_window.timer_continue = False
+        del self.topical_window.netio
 
+def debug(message, level):
+    if DEBUG_MODE and level > DEBUG_LEVEL:
+        print(message)
 
 def main():
     controller = Controller()
@@ -669,6 +696,7 @@ def main():
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal.SIG_DFL) # ^C exits the application
+    netio230a.TELNET_SOCKET_TIMEOUT = OVERWRITE_TELNET_SOCKET_TIMEOUT
     
     main()
 
