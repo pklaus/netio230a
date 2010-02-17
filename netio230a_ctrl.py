@@ -30,6 +30,9 @@ import sys
 EXIT_SUCCESS=0
 EXIT_FAILURE=1
 
+## for ^C catching:
+import signal
+
 ## for optparse.OptionParser()
 import optparse
 
@@ -115,6 +118,8 @@ def main():
 
 
 if __name__ == '__main__':
+    signal.signal(signal.SIGINT, signal.SIG_DFL) # ^C exits the application
+    
     main()
 
 
