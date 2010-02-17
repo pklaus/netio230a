@@ -91,7 +91,7 @@ class DeviceController:
         
         self.window = self.builder.get_object("mainWindow")
         self.window.set_icon_from_file(getAbsoluteFilepath(PROGRAM_ICON))
-        
+        self.builder.get_object("link_button").set_uri('http://'+self.__host)
         
         self.updateLabels()
         self.updatePowerSocketStatus()
@@ -230,6 +230,8 @@ class ConnectionDetailDialog:
         self.builder = gtk.Builder()
         self.builder.add_from_file(getAbsoluteFilepath(CONNECTION_DETAIL_UI))
         self.dialog = self.builder.get_object("ConnectionDetailDialog")
+        self.dialog.set_title("Provide connection details...")
+        self.dialog.set_icon_from_file(getAbsoluteFilepath(PROGRAM_ICON))
         # pre-fill values of text entries
         self.builder.get_object("host_text").set_text(host)
         self.builder.get_object("port_text").set_text(str(port))
@@ -423,12 +425,14 @@ class DeviceSelector:
                 #    print 'Lieber nicht.'
                 #dlg.destroy()
         if stored_connection:
-            dl = ConnectionDetailDialog(host, username, password, tcp_port, stored_connection, store_password)
+            self.dl = ConnectionDetailDialog(host, username, password, tcp_port, stored_connection, store_password)
         else:
-            dl = ConnectionDetailDialog(host)
-        result = dl.run()
+            self.dl = ConnectionDetailDialog(host)
+        self.controller.deny_quit = True
+        result = self.dl.run()
+        self.controller.deny_quit = False
         while result == 1:
-            data = dl.getData()
+            data = self.dl.getData()
             try:
                 netio = netio230a.netio230a(data['host'], data['username'], data['password'], True, data['tcp_port'])
                 devicename = netio.getDeviceAlias()
@@ -440,13 +444,15 @@ class DeviceSelector:
                 response = continue_abort.run()
                 continue_abort.destroy()
                 if response == gtk.RESPONSE_OK:
-                    result = dl.run()
+                    self.controller.deny_quit = True
+                    result = self.dl.run()
+                    self.controller.deny_quit = False
                 else:
                     result = 0
                     break
         
-        dl.dialog.hide()
-        del dl
+        self.dl.dialog.hide()
+        del self.dl
         if result != 1:
             return
         
@@ -506,7 +512,7 @@ class TrayIcon(gtk.StatusIcon):
             #('Search', None, '_Search...', None, 'Search files with MetaTracker', self.on_activate),
             ('ConnectNote', None, ' - please connect first... - ', None, 'Please connect to a NETIO-230A device to be able to power on/off sockets.', self.on_toggle),
             ('About', gtk.STOCK_ABOUT, '_About...', None, 'About NETIO-230A control', self.on_about),
-            ('Quit', gtk.STOCK_QUIT, '_Quit', None, 'Quit the program', gtk.main_quit),]
+            ('Quit', gtk.STOCK_QUIT, '_Quit', None, 'Quit the program', self.quit),]
         ag = gtk.ActionGroup('Actions')
         ag.add_actions(actions)
         self.manager = gtk.UIManager()
@@ -527,6 +533,8 @@ class TrayIcon(gtk.StatusIcon):
         self.block_changes = True
         for socket in new_status:
             menu_item = self.manager.get_widget('/Menubar/Menu/Socket' + str(i))
+            if menu_item == None:
+                continue
             menu_item.set_label("_%d: %s" % (i, socket[0]))
             menu_item.set_active(socket[1])
             i += 1
@@ -554,7 +562,7 @@ class TrayIcon(gtk.StatusIcon):
             #('Search', None, '_Search...', None, 'Search files with MetaTracker', self.on_activate),
             #('Preferences', gtk.STOCK_PREFERENCES, '_Preferences...', None, 'Change MetaTracker preferences', self.on_preferences),
             ('About', gtk.STOCK_ABOUT, '_About...', None, 'About NETIO-230A control', self.on_about),
-            ('Quit', gtk.STOCK_QUIT, '_Quit', None, 'Quit the program', gtk.main_quit),]
+            ('Quit', gtk.STOCK_QUIT, '_Quit', None, 'Quit the program', self.quit),]
         toggle_actions = [
             ('Socket1', None, '_1: Toggle Socket 1', None, 'Switch power socket 1 on or off.', self.on_toggle,True),
             ('Socket2', None, '_2: Toggle Socket 2', None, 'Switch power socket 2 on or off.', self.on_toggle),
@@ -572,6 +580,12 @@ class TrayIcon(gtk.StatusIcon):
         #search.get_children()[0].set_use_underline(True)
         #search.get_children()[0].set_use_markup(True)
         #search.get_children()[1].set_from_stock(gtk.STOCK_FIND, gtk.ICON_SIZE_MENU)
+
+    def quit(self, widget):
+        if self.controller.deny_quit:
+            self.controller.quit_requested()
+        else:
+            gtk.main_quit()
 
     def on_activate(self, data):
         #print("ok, here we want to toggle the visibility of the program...")
@@ -610,6 +624,7 @@ class Controller(object):
     def run(self):
         self.nextStep = "runDeviceSelector"
         self.visible = True
+        self.deny_quit = False
         self.icon = TrayIcon(self)
         while self.nextStep != "":
             if self.nextStep == "runDeviceSelector":
@@ -620,6 +635,12 @@ class Controller(object):
                 self.nextStep = ""
                 self.icon.set_connected_ui()
                 self.runDeviceController(self.nextStepKWArgs)
+    
+    def quit_requested(self):
+        try:
+            self.topical_window.dl.dialog.present()
+        except:
+            pass
     
     def toggle_visibility(self):
         if self.visible == True:

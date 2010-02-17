@@ -23,7 +23,6 @@ GUI
   * automatic status updates (en-/disable, change frequency)
   * en-/disable logging
 * ability to change the names of the ports via the user interface
-* link to open the devices website with a single click
 * switch on a power socket for a configurable amount of time
 
 less important are:
@@ -41,3 +40,6 @@ Allready Implemented
 * implemented all documented commands found in the manual up to command "port" on page 19.
 * automatic status updates (every 3 seconds)
 * logging capabilities for the class added (the GUI makes use of it)
+* link to open the devices website with a single click on the GUI
+* concurrent access to the netio230a library secured (by waiting for the other request or throwing an exception)
+
