@@ -425,6 +425,7 @@ class TrayIcon(gtk.StatusIcon):
         self.block_changes = False
     
     def set_disconnected_ui(self):
+        self.connected_mode = False
         menu = '''
             <ui>
              <menubar name="Menubar">
@@ -477,6 +478,7 @@ class TrayIcon(gtk.StatusIcon):
         self.block_changes = False
 
     def set_connected_ui(self):
+        self.connected_mode = True
         menu = '''
             <ui>
              <menubar name="Menubar">
@@ -539,6 +541,8 @@ class TrayIcon(gtk.StatusIcon):
                 pass
 
     def on_popup_menu(self, status, button, time):
+        if self.connected_mode:
+            self.controller.topical_window.updatePowerSocketStatus()
         self.menu.popup(None, None, None, button, time)
 
     #def on_preferences(self, data):
