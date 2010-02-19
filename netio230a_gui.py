@@ -90,6 +90,7 @@ class DeviceController:
         self.__tcp_port = connection_details['tcp_port']
         self.__username = connection_details['username']
         self.__pw = connection_details['password']
+        self.__persistent_connection = connection_details['persistent_network']
         try:
             self.netio = netio230a.netio230a(self.__host, self.__username, self.__pw, True, self.__tcp_port)
             self.netio.enable_logging(open(configuration.LOG_FILE,'w'))
@@ -173,7 +174,8 @@ class DeviceController:
         except StandardError, error:
             print(str(error))
             return
-        #self.netio.disconnect()
+        if not self.__persistent_connection:
+            self.netio.disconnect()
         
         # update checkboxes on this GUI and on the status icon:
         i = 1
@@ -200,7 +202,8 @@ class DeviceController:
         except StandardError, error:
             print(str(error))
             return
-        #self.netio.disconnect()
+        if not self.__persistent_connection:
+            self.netio.disconnect()
         for i in range(4):
             label_name = "socket"+str(i+1)+"_label"
             self.builder.get_object(label_name).set_text(self.builder.get_object(label_name).get_text()+' ("'+power_sockets[i].getName()+'")')
@@ -217,7 +220,8 @@ class DeviceController:
         except StandardError, error:
             print(str(error))
             return
-        #self.netio.disconnect()
+        if not self.__persistent_connection:
+            self.netio.disconnect()
         self.builder.get_object("device_name").set_text( deviceAlias )
         self.builder.get_object("firmware_version").set_text( version )
         self.builder.get_object("system_time").set_text( systemTime )
@@ -242,7 +246,8 @@ class DeviceController:
             self.netio.setPowerSocketPower(socket_nr,socket_power)
         except StandardError, error:
             print(str(error))
-        #self.netio.disconnect()
+        if not self.__persistent_connection:
+            self.netio.disconnect()
         self.updatePowerSocketStatus()
 
 class ConnectionDetailDialog:
@@ -286,6 +291,7 @@ class ConnectionDetailDialog:
             self.builder.get_object("port_text").set_text("0")
         self.__store_connection = self.builder.get_object("store_connection").get_active()
         self.__store_password = self.builder.get_object("store_password").get_active()
+        self.__persistent_network = self.builder.get_object("persistent_network").get_active()
     
     def enter_pressed(self, widget):
         self.builder.get_object("connect_button").activate()
@@ -303,6 +309,7 @@ class ConnectionDetailDialog:
         data['tcp_port'] = self.__tcp_port
         data['store_connection'] = self.__store_connection
         data['store_password'] = self.__store_password
+        data['persistent_network'] = self.__persistent_network
         return data
         
 
@@ -485,7 +492,7 @@ class DeviceSelector:
             md = gtk.MessageDialog(self.window, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_INFO, gtk.BUTTONS_CLOSE, "Connection details removed from configuration file.")
             md.run()
             md.destroy()
-        self.controller.setNextStep("runDeviceController", host = data['host'], tcp_port = data['tcp_port'], username=data['username'], password = data['password'])
+        self.controller.setNextStep("runDeviceController", host = data['host'], tcp_port = data['tcp_port'], username=data['username'], password = data['password'], persistent_network = data['persistent_network'])
         #self.window.hide()
         self.window.destroy()
         gtk.main_quit()
@@ -508,6 +515,7 @@ class TrayIcon(gtk.StatusIcon):
         self.block_changes = False
     
     def set_disconnected_ui(self):
+        self.connected_mode = False
         menu = '''
             <ui>
              <menubar name="Menubar">
@@ -562,6 +570,7 @@ class TrayIcon(gtk.StatusIcon):
         self.block_changes = False
 
     def set_connected_ui(self):
+        self.connected_mode = True
         menu = '''
             <ui>
              <menubar name="Menubar">
@@ -630,6 +639,8 @@ class TrayIcon(gtk.StatusIcon):
                 pass
 
     def on_popup_menu(self, status, button, time):
+        if self.connected_mode:
+            self.controller.topical_window.updatePowerSocketStatus()
         self.menu.popup(None, None, None, button, time)
 
     #def on_preferences(self, data):

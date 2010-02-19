@@ -33,6 +33,7 @@
                   <object class="GtkEntry" id="host_text">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <property name="tooltip_text" translatable="yes">The domain or IP address of the NETIO-230A you want to connect to.</property>
                     <property name="invisible_char">&#x2022;</property>
                     <property name="width_chars">25</property>
                     <signal name="activate" handler="enter_pressed"/>
@@ -64,6 +65,7 @@
                   <object class="GtkEntry" id="port_text">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <property name="tooltip_text" translatable="yes">The configured telnet TCP port of the machine. The default value on newer firmware releases is 1234 on oder ones the standard telnet port 23.</property>
                     <property name="invisible_char">&#x2022;</property>
                     <property name="width_chars">25</property>
                     <signal name="activate" handler="enter_pressed"/>
@@ -95,6 +97,7 @@
                   <object class="GtkEntry" id="username_text">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <property name="tooltip_text" translatable="yes">Usually this is "admin" although basic user permissions exist on the device, so a "user" should also be fine.</property>
                     <property name="invisible_char">&#x2022;</property>
                     <property name="width_chars">25</property>
                     <signal name="activate" handler="enter_pressed"/>
@@ -176,6 +179,20 @@
               </object>
               <packing>
                 <property name="position">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="persistent_network">
+                <property name="label" translatable="yes">keep network connection open</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
+                <property name="tooltip_text" translatable="yes">When you activate the persistent network connection mode the NETIO-230A will stay connected to the software. This makes it impossible for other telnet clients to connect to the box. Nevertheless it is faster and more stable.</property>
+                <property name="active">True</property>
+                <property name="draw_indicator">True</property>
+              </object>
+              <packing>
+                <property name="position">5</property>
               </packing>
             </child>
           </object>
