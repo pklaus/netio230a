@@ -57,7 +57,10 @@ from datetime import datetime
 
 TELNET_LINE_ENDING = "\r\n"
 TELNET_SOCKET_TIMEOUT = 5
-INITIAL_WAIT_FOR_OTHER_REQUEST = 0.013 # 13 ms to wait for other requests (on first request), this is my mean value for 1000 requests
+INITIAL_WAIT_FOR_OTHER_REQUEST = 0.013 # 13 ms to wait for other requests to terminate (later requests use the mean request time)
+#ANTI_FLOODING_WAIT = 0.001 # wait 1 ms before sending the next request (after having received the last response)
+ANTI_FLOODING_WAIT = 0.0
+MAX_NUMBER_OF_REQUESTS_BEFORE_RECONNECT = 500
 
 class netio230a(object):
     """netio230a is the basic class that you want to instantiate when communicating
@@ -76,8 +79,9 @@ class netio230a(object):
         self.logging = False
         self.__pending_request = False
         self.__relogin_try = False
-        self.wait_for_request_time = INITIAL_WAIT_FOR_OTHER_REQUEST
+        self.mean_request_time = INITIAL_WAIT_FOR_OTHER_REQUEST
         self.number_of_sent_requests = 0
+        self.__last_request_received = time.time()
         self.__host = host
         self.__username = username
         self.__password = password
@@ -115,9 +119,11 @@ class netio230a(object):
                     raise NameError("There is no route to the host given: " + self.__host)
                 elif error.errno == errno.ECONNRESET:
                     raise NameError("The connection was reset by the device. This is usually the case when you still have another network socket connected to the device. It may also be the case when the telnet server on the device crashed. In this case reboot the device (if possible & sensible).")
-                
             # in any other case just hand on the risen error:
             raise error
+        except Exception, error:
+            raise error
+        
         # The answer should be in the form     "100 HELLO E675DDA5"
         # where the last eight letters are random hexcode used to hash the password
         if self.__reSearch("^100 HELLO [0-9A-F]{8}"+TELNET_LINE_ENDING+"$", data) == None and \
@@ -165,7 +171,8 @@ class netio230a(object):
             raise error
 
     def log(self, message, line_break=True):
-        self.log_file.write(message + ("\n" if line_break else "" ))
+        if self.logging:
+            self.log_file.write("%s %s%s" % (datetime.now().isoformat(), message, ("\n" if line_break else "" )) )
 
     def getPowerSocketList(self):
         """Sends request to the NETIO 230A to ask for the power socket status.
@@ -301,31 +308,44 @@ class netio230a(object):
         counter = 0
         # in this loop we want to avoid errors for concurrent requests (from different threads etc.)
         while self.__pending_request and not relogin_try:
-            time.sleep(self.wait_for_request_time*2)
+            wait_time = self.mean_request_time*.5
+            time.sleep(wait_time)
             counter += 1
-            if self.logging:
-                self.log("Waiting for an other request to finish. Average time for processes to finish is %.6f after a total number of %d requests." % (self.wait_for_request_time, self.number_of_sent_requests) )
-            if counter > 5:
-                # after 5 failed tries, we give up.
+            print("concurrent action for request: %s" % request)
+            self.log("Waiting for an other request to finish. Average time for processes to finish is %.6f after a total number of %d requests." % (self.mean_request_time, self.number_of_sent_requests) )
+            if counter * wait_time >= 3 * (self.mean_request_time + ANTI_FLOODING_WAIT):
+                # If we waited long enough, we give up.
                 raise NameError("Sorry, some other process is sending a request you cannot send yours now.")
         # set the lock for our request (and therefore block other requests for now)
         self.__pending_request = True
+        if ANTI_FLOODING_WAIT > 0.0005 and time.time()-self.__last_request_received < ANTI_FLOODING_WAIT:
+            time.sleep(ANTI_FLOODING_WAIT-(time.time()-self.__last_request_received))
+        if MAX_NUMBER_OF_REQUESTS_BEFORE_RECONNECT > 0 and (self.number_of_sent_requests+1) % MAX_NUMBER_OF_REQUESTS_BEFORE_RECONNECT == 0:
+            print("%d requests made, reconnecting..." % MAX_NUMBER_OF_REQUESTS_BEFORE_RECONNECT)
+            self.number_of_sent_requests += 1
+            self.disconnect()
         starting_time = time.time()
         try:
             self.__send(request.encode("ascii")+TELNET_LINE_ENDING.encode("ascii"))
-        except:
+        except Exception, error:
+            self.log("first try to send the command failed: "+str(error))
             try:
                 self.__create_socket_and_login(True)
                 self.__send(request.encode("ascii")+TELNET_LINE_ENDING.encode("ascii"))
-            except StandardError,error:
+            except StandardError, error: # handle Builtin exceptions
                 self.__pending_request = False
+                self.log("second try to send the command failed: "+str(error))
                 raise NameError("no connection possible or other exception: "+str(error))
-            except:
+            except Exception, error:
+                self.log("second try to send the command failed: "+str(error))
                 self.__pending_request = False
         try:
             data = self.__receive()
-        except:
+        except Exception, error:
+            # maybe we should try to reconnect here too before giving up.
+            self.log("trying to receive data failed: "+str(error))
             self.__pending_request = False
+            self.__s.close()
         
         if self.__reSearch("^250 ", data) == None and complainIfAnswerNot250:
             self.__pending_request = False
@@ -333,8 +353,9 @@ class netio230a(object):
         else:
             data = data.decode("ascii")
             data = data.replace("250 ","").replace(TELNET_LINE_ENDING,"")
-            self.wait_for_request_time = ( self.number_of_sent_requests*self.wait_for_request_time + (time.time()-starting_time) ) / (self.number_of_sent_requests + 1)
+            self.mean_request_time = ( self.number_of_sent_requests*self.mean_request_time + (time.time()-starting_time) ) / (self.number_of_sent_requests + 1)
             self.number_of_sent_requests += 1
+            self.__last_request_received = time.time()
             self.__pending_request = False
             return data
     
@@ -353,14 +374,12 @@ class netio230a(object):
     ###   end of class netio230a   ----------------
 
     def __send(self, data):
-        if self.logging:
-            self.log(data, False)
+        self.log(data, False)
         self.__s.send(data)
 
     def __receive(self):
         response = self.__s.recv(self.__bufsize)
-        if self.logging:
-            self.log(response, False)
+        self.log(response, False)
         return response
 
 

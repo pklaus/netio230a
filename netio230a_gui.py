@@ -44,7 +44,7 @@ CONNECTION_DETAIL_UI = "netio230aGUI_dialog.glade"
 
 AUTO_UPDATE = 3 # auto update time seconds
 
-OVERWRITE_TELNET_SOCKET_TIMEOUT = 2
+OVERWRITE_TELNET_SOCKET_TIMEOUT = 1
 
 
 DEBUG_MODE = True
@@ -192,7 +192,7 @@ class DeviceController:
         self.updateStatusBar()
 
     def updateStatusBar(self):
-        self.builder.get_object("status_label").set_text(u"ø %.1f ms/request (%d total)" % (self.netio.wait_for_request_time*1000, self.netio.number_of_sent_requests))
+        self.builder.get_object("status_label").set_text(u"ø %.1f ms/request (%d total)" % (self.netio.mean_request_time*1000, self.netio.number_of_sent_requests))
     
     def updateLabels(self):
         try:
