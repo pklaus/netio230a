@@ -335,7 +335,10 @@ class DeviceSelector:
         if len(devices) > 0:
             self.auto_iter = self.treestore.append(None,['auto-detected devices','','','',''])
         else:
-            self.treestore.append(None,['no auto-detected devices','','','',''])
+            if os.name == 'nt':
+                self.treestore.append(None,['auto-detection is not working on Windows','','','',''])
+            else:
+                self.treestore.append(None,['no auto-detected devices','','','',''])
         for device in devices:
             #   device name, IP, port, user, password
             self.treestore.append(self.auto_iter,[device[0],str(device[1][0])+'.'+str(device[1][1])+'.'+str(device[1][2])+'.'+str(device[1][3]),'','',''])
@@ -408,7 +411,7 @@ class DeviceSelector:
         scroll.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC);
         scroll.add(self.treeview);
 
-        spacing, homogenious, expand, fill, padding = 1, False, False, True, 2
+        spacing, homogeneous, expand, fill, padding = 1, False, False, True, 2
         superbox = gtk.VBox(homogeneous, spacing)
         superbox.pack_start(scroll, True, True, 1)
         superbox.pack_start(box, False, False, 0)

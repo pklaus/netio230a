@@ -514,8 +514,10 @@ def discover_netio230a_devices(callback_for_found_devices):
     myUDPintsockThread.join()
 
 ## http://code.activestate.com/recipes/439093/#c1
-# import socket
-import fcntl
+try:
+    import fcntl
+except:
+    pass
 import struct
 import array
 def all_interfaces():
@@ -523,11 +525,14 @@ def all_interfaces():
     bytes = max_possible * 32
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     names = array.array('B', '\0' * bytes)
-    outbytes = struct.unpack('iL', fcntl.ioctl(
-        s.fileno(),
-        0x8912,  # SIOCGIFCONF
-        struct.pack('iL', bytes, names.buffer_info()[0])
-    ))[0]
+    try:
+        outbytes = struct.unpack('iL', fcntl.ioctl(
+            s.fileno(),
+            0x8912,  # SIOCGIFCONF
+            struct.pack('iL', bytes, names.buffer_info()[0])
+        ))[0]
+    except:
+        return []
     namestr = names.tostring()
     lst = []
     for i in range(0, outbytes, 40):
