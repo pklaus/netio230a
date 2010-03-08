@@ -42,6 +42,10 @@ PROGRAM_ICON = 'netio230a_icon.png'
 DEVICE_CONTROLLER_UI = "netio230aGUI.glade"
 CONNECTION_DETAIL_UI = "netio230aGUI_dialog.glade"
 
+POSSIBLE_RESOURCE_PATHS = [ os.path.abspath(os.path.dirname(sys.argv[0])) + '/resources/', # path relative to this script
+        '/usr/share/python-netio230a/resources/', # debian resource path
+    ]
+
 AUTO_UPDATE = 3 # auto update time seconds
 
 OVERWRITE_TELNET_SOCKET_TIMEOUT = 1
@@ -66,8 +70,10 @@ DBG_WARNING = 8
 
 
 def getAbsoluteFilepath(filename):
-    fullpath = os.path.abspath(os.path.dirname(sys.argv[0]))
-    return fullpath + '/resources/' + filename
+    for path in POSSIBLE_RESOURCE_PATHS:
+        if os.path.isfile(path + filename):
+            return path + filename
+    raise NameError('File ('+ filename +') not found in possible resource folders: '+str(POSSIBLE_RESOURCE_PATHS))
 
 class AboutDialog:
     def __init__(self):
