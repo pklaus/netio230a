@@ -25,15 +25,37 @@
 This module is made to simplify the process of saving and retrieving saved credentials from previous connections for the other modules of the project.
 """
 
-import json
+try:
+    import json
+except ImportError:
+    pass
+
+try:
+    import pickle
+except ImportError:
+    pass
+
 from datetime import datetime
 import os
+import sys
 
-CONFIGURATION_FILE = os.path.expanduser("~/.netio230a/connections.json")
 LOG_FILE = os.path.expanduser("~/.netio230a/netio230a.py.log")
 
 REMOVE = -1
 UPDATE = 2
+
+CONFIGURATION_FILE = ""
+try:
+    BACKEND = json
+    CONFIGURATION_FILE = os.path.expanduser("~/.netio230a/connections.json")
+except:
+    BACKEND = pickle
+    CONFIGURATION_FILE = os.path.expanduser("~/.netio230a/connections.pickle")
+
+# PyS60
+if sys.platform == 'symbian_s60':
+    CONFIGURATION_FILE = "C:/Data/netio230a/connections"
+
 
 def changeConfiguration(action, devicename, host, port, username, password):
     try:
@@ -67,7 +89,7 @@ def changeConfiguration(action, devicename, host, port, username, password):
         configuration.sort(key=sort_configuration)
         configuration.reverse()
         outfile = open(CONFIGURATION_FILE,'w')
-        json.dump(configuration,outfile)
+        store(configuration,outfile)
         outfile.close()
         return True
     except StandardError, error:
@@ -75,13 +97,18 @@ def changeConfiguration(action, devicename, host, port, username, password):
         return False
 
 
+def store(configuration, outfile):
+    BACKEND.dump(configuration,outfile)
+def retrieve(infile):
+    return BACKEND.load(infile)
+
 def sort_configuration(config_row):
     return config_row[5]
 
 def getConfiguration():
     try:
         infile = open(CONFIGURATION_FILE,'r')
-        configuration = json.load(infile)
+        configuration = retrieve(infile)
         infile.close()
         return configuration
     except StandardError, error:

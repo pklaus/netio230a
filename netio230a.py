@@ -34,11 +34,25 @@
 # port wd 2 enable 192.168.10.101 10 360 1 3 enable enable
 
 
-
+#For PyS60 we need this:
+try:
+    import sys
+    # http://discussion.forum.nokia.com/forum/showthread.php?p=575213
+    # Try to import 'btsocket' as 'socket' (just for 1.9.x)
+    if sys.platform == 'symbian_s60':
+        sys.modules['socket'] = __import__('btsocket')
+except ImportError:
+    pass
 # for the raw TCP socket connection:
 import socket
 # for md5 checksum:
-import hashlib
+try:
+    import hashlib
+    md = hashlib.md5()
+except ImportError:
+    # for Python << 2.5
+    import md5
+    md = md5.new()
 # for RegularExpressions:
 import re
 ## for debugging (set debug mark with pdb.set_trace() )
@@ -94,7 +108,10 @@ class netio230a(object):
     def __create_socket_and_login(self, relogin_try=False):
         # create a TCP/IP socket
         self.__s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.__s.settimeout(TELNET_SOCKET_TIMEOUT)
+        try: # btsocket on PyS60 lacks this member function so we have to try it:
+            self.__s.settimeout(TELNET_SOCKET_TIMEOUT)
+        except:
+            pass
         self.__login(relogin_try)
  
     def __login(self, relogin_try=False):
@@ -131,11 +148,10 @@ class netio230a(object):
            self.__reSearch("^100 HELLO [0-9A-F]{8} - KSHELL V1.2"+TELNET_LINE_ENDING+"$", data) == None  :
             raise NameError("Error while connecting: Not received a \"100 HELLO ... signal from the remote device. Maybe not a NET-IO 230A?")
         if self.__secureLogin:
-            m = hashlib.md5()
             hash=str(data).split(" ")[2]
             msg=self.__username + self.__password + hash
-            m.update(msg.encode("ascii"))
-            loginString = "clogin " + self.__username + " " + m.hexdigest() + TELNET_LINE_ENDING
+            md.update(msg.encode("ascii"))
+            loginString = "clogin " + self.__username + " " + md.hexdigest() + TELNET_LINE_ENDING
         else:
             # use the password in cleartext
             loginString = "login " + self.__username + " " + self.__password + TELNET_LINE_ENDING
@@ -169,10 +185,15 @@ class netio230a(object):
         except StandardError, error:
             self.logging = True
             raise error
-
+    
     def log(self, message, line_break=True):
         if self.logging:
-            self.log_file.write("%s %s%s" % (datetime.now().isoformat(), message, ("\n" if line_break else "" )) )
+            self.log_file.write("%s %s%s" % (datetime.now().isoformat(), message, "\n" if line_break else "") )
+            # or if the ternary operator is not available:
+            #n=""
+            #if line_break:
+            #    n = "\n"
+            #self.log_file.write("%s %s%s" % (datetime.now().isoformat(), message, n) )
 
     def getPowerSocketList(self):
         """Sends request to the NETIO 230A to ask for the power socket status.
@@ -440,7 +461,7 @@ import time
 import sys
 
 NETIO230A_UDP_DISCOVER_PORT = 4000
-TIMEOUT=0.2 # should be enough. Usualy we get the answer in 4.6 ms
+DETECTION_TIMEOUT=0.2 # should be enough. Usualy we get the answer in 4.6 ms
 DEVICE_NAME_TERMINATION = "\x00\x30\x30\x38\x30"
 # the request to ask for available NETIO-230A on the network (bytes sniffed using wireshark)
 DISCOVER_REQUEST = "PCEdit\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00"
@@ -463,7 +484,7 @@ class UDPintsockThread(threading.Thread):
         UDPinsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         UDPinsock.bind(addr)
         # will listen for three seconds to your network
-        UDPinsock.settimeout(TIMEOUT)
+        UDPinsock.settimeout(DETECTION_TIMEOUT)
         while True:
             try:
                 # Receive messages
@@ -503,12 +524,20 @@ def discover_netio230a_devices(callback_for_found_devices):
     
     # send on all interfaces of the computer:
     # cf. last lines of the comment <http://serverfault.com/questions/72112/how-to-fix-the-global-broadcast-address-255-255-255-255-behavior-on-windows/72152#72152>
-    for interface in all_interfaces():
+    interfaces = all_interfaces()
+    # but in case we could not enumerate all interfaces we still want one try:
+    if len(interfaces) == 0: interfaces = [['','']]
+    for interface in interfaces:
         UDPoutsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # to allow broadcast communication:
         UDPoutsock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        host = socket.inet_ntoa(interface[1])
-        UDPoutsock.bind((host, 0))
+        #if interface[1]=='':
+        #    host = ""
+        #else:
+        #    host = socket.inet_ntoa(interface[1])
+        #UDPoutsock.bind((host, 0))
+        # or using the ternary operator:
+        UDPoutsock.bind(("" if interface[1]=='' else socket.inet_ntoa(interface[1]), 0))
         # send UDP broadcast:
         UDPoutsock.sendto(DISCOVER_REQUEST, dest)
     myUDPintsockThread.join()
