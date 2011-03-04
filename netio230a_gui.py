@@ -43,7 +43,7 @@ DEVICE_CONTROLLER_UI = "netio230aGUI.glade"
 CONNECTION_DETAIL_UI = "netio230aGUI_dialog.glade"
 
 POSSIBLE_RESOURCE_PATHS = [ os.path.abspath(os.path.dirname(sys.argv[0])) + '/resources/', # path relative to this script
-        '/usr/share/python-netio230a/resources/', # debian resource path
+        '/usr/share/netio230a-gui/', # debian resource path
     ]
 
 AUTO_UPDATE = 3 # auto update time seconds
