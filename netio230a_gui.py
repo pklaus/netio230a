@@ -471,6 +471,7 @@ class DeviceSelector:
             data = self.dl.getData()
             try:
                 netio = netio230a.netio230a(data['host'], data['username'], data['password'], True, data['tcp_port'])
+                netio.enable_logging(open(configuration.LOG_FILE,'w'))
                 devicename = netio.getDeviceAlias()
                 netio = None
                 break

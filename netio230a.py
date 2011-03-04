@@ -48,11 +48,9 @@ import socket
 # for md5 checksum:
 try:
     import hashlib
-    md = hashlib.md5()
 except ImportError:
     # for Python << 2.5
     import md5
-    md = md5.new()
 # for RegularExpressions:
 import re
 ## for debugging (set debug mark with pdb.set_trace() )
@@ -150,6 +148,11 @@ class netio230a(object):
         if self.__secureLogin:
             hash=str(data).split(" ")[2]
             msg=self.__username + self.__password + hash
+            # for md5 checksum:
+            try:
+                md = hashlib.md5()
+            except:
+                md = md5.new()
             md.update(msg.encode("ascii"))
             loginString = "clogin " + self.__username + " " + md.hexdigest() + TELNET_LINE_ENDING
         else:
@@ -384,6 +387,9 @@ class netio230a(object):
         try:
             # send the quit command to the box (if we have an open connection):
             self.__send("quit".encode("ascii")+TELNET_LINE_ENDING.encode("ascii"))
+        except Exception, error:
+            raise error
+        try:
             self.__receive()  # should give  110 BYE
         except:
             pass
@@ -391,7 +397,10 @@ class netio230a(object):
         self.__s.close()
     
     def __del__(self):
-        self.disconnect()
+        try:
+            self.disconnect()
+        except:
+            pass
     ###   end of class netio230a   ----------------
 
     def __send(self, data):
