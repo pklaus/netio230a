@@ -1,0 +1,24 @@
+#!/usr/bin/env xdg-open
+
+# If you want this application starter to integrate in the Gnome Menu, execute the following lines of code
+# in the terminal to create a link for the netio230a gui folder /usr/share/applications/:
+#    ICON_FILE="netio230a_gui.desktop"
+#    SYSTEM_FOLDER="/usr/share/applications"
+#    sudo cp "${ICON_FILE}" "${SYSTEM_FOLDER}/${ICON_FILE}"
+# (Alternatively it can be put ~/.gnome2/panel2.d/default/launchers)
+
+[Desktop Entry]
+Encoding=UTF-8
+Version=1.0
+Name=NETIO-230A control
+Name[en_US]=NETIO-230A control
+Name[de]=NETIO-230A control
+Comment=Control a Koukaam NETIO-230A device on the network
+Categories=GNOME;Application;Network;
+Exec=/home/pklaus/netio230a/netio230a_gui.py
+Icon=/home/pklaus/netio230a/resources/netio230a_icon.svg
+Type=Application
+Terminal=false
+Path=/home/pklaus/netio230a/
+
+
