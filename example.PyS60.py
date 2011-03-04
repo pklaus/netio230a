@@ -29,6 +29,10 @@
 # use 1.9.x or later found on <https://garage.maemo.org/frs/?group_id=854>
 # -------------------------------------------------------------------------------------
 
+# How to push this file easily to the device (for easier development):
+#
+#    obexftp.exe -b 00:1f:5d:5b:53:fb -B 11 --chdir /E:/Python/ --put ./example.PyS60.py
+#    obexftp.exe -b 00:1f:5d:5b:53:fb -B 11 --chdir /E:/Python/ --put ./accelerometer.py
 
 import sys
 sys.path.append('e:\\Python')
