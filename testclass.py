@@ -105,7 +105,7 @@ class FakeNetio230aHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
         # First, we have to send the welcome message (including the salt for the md5 password hash):
-        self.send(N_WELCOME % random.randint(0, 4294967296) )
+        self.send(N_WELCOME % random.randint(0, 2**32-1) )
         # now we wait for incoming authentication requests:
         data = self.receive()
         auth = False
