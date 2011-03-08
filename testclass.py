@@ -27,10 +27,8 @@ import unittest
 import netio230a
 
 # To simulate the NETIO230A device:
-import socket
 import threading
-import SocketServer
-import random
+import fakeserver
 
 #DEBUG = True
 DEBUG = False
@@ -45,7 +43,7 @@ class TestNETIO230A(unittest.TestCase):
         """
         setUp() gets executed before every test_SOMETHING() test in this class
         """
-        self.fake_server = FakeNetio230a(("", 0), FakeNetio230aHandler)
+        self.fake_server = fakeserver.FakeNetio230a(("", 0), fakeserver.FakeNetio230aHandler)
         self.fake_server_ip, self.fake_server_port = self.fake_server.server_address
         # Start a thread with the server -- that thread will then start one more thread for each request
         # (but we want to listen for shutdown requests every millisecond)
@@ -62,10 +60,10 @@ class TestNETIO230A(unittest.TestCase):
         # we need server_close() too because the socket would remain opened otherwise:
         self.fake_server.server_close() # see <http://stackoverflow.com/questions/5218159>
 
-    #def test_for_invalid_server(self):
-    #    ## Test for exception:
-    #    self.assertRaises(NameError,netio230a.netio230a,"x 400.1.1.1", "admin", "password", True, 1234)
-    #    #netio230a.netio230a("300.1.1.1", "admin", "password", True, 1234)
+    def test_for_invalid_server(self):
+        ## Test for exception:
+        self.assertRaises(NameError,netio230a.netio230a,"x 400.1.1.1", "admin", "password", True, 1234)
+        #netio230a.netio230a("300.1.1.1", "admin", "password", True, 1234)
 
     def test_connect_to_fake_server(self):
         netio = netio230a.netio230a("localhost","admin", "password", True, self.fake_server_port)
@@ -84,56 +82,6 @@ class TestNETIO230A(unittest.TestCase):
         #sntpSettings = netio.getSntpSettings()
         #systemTime = netio.getSystemTime()
         #timezoneOffset = netio.getSystemTimezone()
-
-
-########## ----------- code for the fake server (imitating the Koukaam NETIO230A) -------------
-
-# Koukaam Netio230A Behaviour:
-N_WELCOME = "100 HELLO %X - KSHELL V1.2"
-N_OK = "250 something"
-N_NAC = "503 problem"
-N_BYE = "110 BYE"
-N_LINE_ENDING = "\r\n"
-
-class FakeNetio230aHandler(SocketServer.BaseRequestHandler):
-
-    def send(self,message):
-        self.request.send(message+N_LINE_ENDING)
-
-    def receive(self):
-        return self.request.recv(1024)
-
-    def handle(self):
-        # First, we have to send the welcome message (including the salt for the md5 password hash):
-        self.send(N_WELCOME % random.randint(0, 2**32-1) )
-        # now we wait for incoming authentication requests:
-        data = self.receive()
-        auth = False
-        while not auth:
-            if "login" in data.strip().lower():
-                auth = True
-            if auth:
-                self.send(N_OK)
-            else:
-                self.send(N_NAC)
-        # now we serve all incoming requests:
-        while True:
-            data = self.request.recv(1024)
-            if data.strip().lower() == 'quit':
-                break
-            self.send(data)
-        self.send(N_BYE)
-
-
-class FakeNetio230a(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-    def __init__(self, server_address, RequestHandlerClass):
-        ### Seems like we don't really need this line (at least with Python 2.7 on Mac OS X):
-        self.allow_reuse_address = True
-        ## with Python 3 we would use something like:
-        #super( FakeNetio230a, self ).__init__(server_address, RequestHandlerClass)
-        ## instead we have to call the constructor of TCPServer explicitly using Python 2.X
-        SocketServer.TCPServer.__init__(self, server_address, RequestHandlerClass)
-
 
 if __name__ == '__main__':
     try:
