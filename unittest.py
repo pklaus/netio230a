@@ -30,9 +30,7 @@ import netio230a
 import threading
 import fakeserver
 
-#DEBUG = True
 DEBUG = False
-
 if DEBUG:
     # use the Python profiler to know what's slow (<http://docs.python.org/library/profile.html>):
     import cProfile
@@ -40,9 +38,7 @@ if DEBUG:
 class TestNETIO230A(unittest.TestCase):
 
     def setUp(self):
-        """
-        setUp() gets executed before every test_SOMETHING() test in this class
-        """
+        """  setUp() gets executed before every test_SOMETHING() test in this class.  """
         self.fake_server = fakeserver.FakeNetio230a(("", 0), fakeserver.FakeNetio230aHandler)
         self.fake_server_ip, self.fake_server_port = self.fake_server.server_address
         # Start a thread with the server -- that thread will then start one more thread for each request
@@ -53,23 +49,20 @@ class TestNETIO230A(unittest.TestCase):
         self.server_thread.start()
 
     def tearDown(self):
-        """
-        tearDown() gets executed after every test_SOMETHING() test in this class
-        """
+        """  tearDown() gets executed after every test_SOMETHING() test in this class.  """
         self.fake_server.shutdown()
         # we need server_close() too because the socket would remain opened otherwise:
         self.fake_server.server_close() # see <http://stackoverflow.com/questions/5218159>
 
     def test_for_invalid_server(self):
         ## Test for exception:
-        self.assertRaises(NameError,netio230a.netio230a,"x 400.1.1.1", "admin", "password", True, 1234)
+        self.assertRaises(NameError,netio230a.netio230a,"x 400.1.1.1", "admin", "admin", True, 1234)
         #netio230a.netio230a("300.1.1.1", "admin", "password", True, 1234)
 
     def test_connect_to_fake_server(self):
-        netio = netio230a.netio230a("localhost","admin", "password", True, self.fake_server_port)
+        netio = netio230a.netio230a("localhost","admin", "admin", True, self.fake_server_port)
 
     #def test_valid_requests(self):
-    #    pass
         #version = netio.getFirmwareVersion()
         #swDelay = netio.getSwitchDelay()
         #power_sockets = netio.getAllPowerSockets()

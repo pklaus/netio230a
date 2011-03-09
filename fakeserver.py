@@ -27,23 +27,33 @@
 import SocketServer
 import threading
 import random
+import string
+import hashlib
 
 # For sys.exit():
 import sys
 
-# for the client:
-import asyncore, socket
-
-#import pdb ## use with pdb.set_trace()
-
-########## ----------- code for the fake server (imitating the Koukaam NETIO230A) -------------
+import pdb ## use with pdb.set_trace()
 
 # Koukaam Netio230A Behaviour:
-N_WELCOME = "100 HELLO %X - KSHELL V1.2"
-N_OK = "250 OK"
+N_WELCOME = "100 HELLO %X - KSHELL V1.2" # welcome message
+N_OK = "OK " # OK prefix
+N_OK_L = "250 OK" # complete OK line
+N_INV_V = "500 INVALID VALUE"
+N_INV_P = "501 INVALID PARAMETR"
+N_UNKNOWN = "502 UNKNOWN COMMAND" # happens when you enter something like `prt`
 N_AUTH_ERR = "503 INVALID LOGIN"
 N_BYE = "110 BYE"
 N_LINE_ENDING = "\r\n"
+
+# Fake Netio230A configuration:
+ADMIN_USERNAME="admin"
+ADMIN_PASSWORD="admin"
+
+class InvVError(Exception):
+    pass
+class InvPError(Exception):
+    pass
 
 class FakeNetio230aHandler(SocketServer.BaseRequestHandler):
 
@@ -55,29 +65,78 @@ class FakeNetio230aHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
         # First, we have to send the welcome message (including the salt for the md5 password hash):
-        self.send(N_WELCOME % random.randint(0, 2**32-1) )
+        salt = random.randint(0, 2**32-1)
+        self.send(N_WELCOME % salt)
         # now we wait for incoming authentication requests:
         auth = False
         while not auth:
-            data = self.receive()
-            if "login" in data.strip().lower():
-                auth = True
+            what_to_do = self.process(self.receive())
+            if what_to_do[0] == 'quit':
+                break
+            pdb.set_trace()
+            if what_to_do[0] == 'login':
+                if ADMIN_USERNAME == what_to_do[1] and ADMIN_PASSWORD == what_to_do[2]: auth = True
+            if what_to_do[0] == 'clogin':
+                md = hashlib.md5()
+                to_hash = ADMIN_USERNAME+ADMIN_PASSWORD+"%X" % salt
+                md.update(to_hash.encode("ascii"))
+                if md.hexdigest() ==  what_to_do[2]: auth = True
             if auth:
-                self.send(N_OK)
+                self.send(N_OK_L)
                 break
             else:
                 self.send(N_AUTH_ERR)
         # now we serve all incoming requests:
-        while True:
-            data = self.receive()
-            if self.means(data,'port list'):
-                self.send(''.join([str(int(status)) for status in fake_server.getOutlets()]))
-            if self.means(data,'quit'):
+        while auth:
+            what_to_do = self.process(self.receive())
+            #pdb.set_trace()
+            if what_to_do[0] == 'port_list':
+                self.send(N_OK + ''.join([str(int(status)) for status in fake_server.getOutlets()]))
+            if what_to_do[0] == 'port_set':
+                fake_server.setOutlet(what_to_do[1],what_to_do[2])
+                self.send(N_OK_L)
+            if what_to_do[0] == 'invalid_parameter':
+                self.send(N_INV_P)
+            if what_to_do[0] == 'invalid_value':
+                self.send(N_INV_V)
+            if what_to_do[0] == 'quit':
                 break
+            if what_to_do[0] == 'unknown_command':
+                self.send(N_UNKNOWN)
         self.send(N_BYE)
-    
-    def means(self,data,what):
-        return data.strip().lower() == what
+
+    def process(self,data):     
+        data = data.strip()
+        if data == 'port list':
+            return ['port_list']
+        if self.begins(data,'login') or self.begins(data,'clogin'):
+            try:
+                fragments = data.split(' ')
+                username = fragments[1]
+                password_or_hash = fragments[2]
+            except:
+                return ['invalid_login']
+            return ['login' if self.begins(data,'login') else 'clogin',username,password_or_hash]
+        if self.begins(data,'port'):
+            try:
+                fragments = data.split(' ')
+                which = int(fragments[1])
+                to = int(fragments[2])
+                if not which in [1,2,3,4]:
+                    raise InvPError
+                if not (to in [0,1]):
+                    raise InvVError
+            except InvPError:
+                return ['invalid_parameter']
+            except InvVError:
+                return ['invalid_value']
+            return ['port_set',which,bool(to)]
+        if data == 'quit':
+            return ['quit']
+        return ['unknown_command']
+
+    def begins(self,data,with_this):
+        return data[0:len(with_this)] == with_this
 
 
 class FakeNetio230a(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
@@ -109,12 +168,8 @@ def start_server(show_client):
         server_thread.daemon = True
         server_thread.start()
         try:
-            client = NetcatClient(fake_server_ip, fake_server_port)
-            client_thread = threading.Thread(target=client.run)
-            client_thread.daemon = True
-            client_thread.start()
-            while client.connected:
-                client.buffer = raw_input()
+            nc = NetcatClient2()
+            nc.interactive(fake_server_ip, fake_server_port)
         except NameError:
             print "The client shut down the connection. Closing."
         except KeyboardInterrupt:
@@ -127,18 +182,39 @@ def start_server(show_client):
             sys.exit(1)
     sys.exit(0)
 
-class NetcatClient2(asyncore.dispatcher):
+
+import socket, signal
+
+class AlarmException(Exception):
+    pass
+def alarmHandler(signum, frame):
+    raise AlarmException
+class NetcatClient2(object):
     def interactive(self,host,port):
-        self.client.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.client.connect( (host, port) )
+        self.connected = True
         read_thread = threading.Thread(target=self.read)
         read_thread.daemon = True
         read_thread.start()
+        signal.signal(signal.SIGALRM, alarmHandler)
         while True:
-            self.client.send(raw_input())
+            try:
+                signal.alarm(1)
+                self.client.send(raw_input())
+                signal.alarm(0)
+            except AlarmException:
+                if not self.connected: break
     def read(self):
         while True:
-            print self.client.recv(8192)
+            data = self.client.recv(8192)
+            if not data: break
+            print data,
+        self.connected = False
+
+
+# for the client:
+import asyncore, socket
 
 class NetcatClient(asyncore.dispatcher):
     def __init__(self, host, port):
@@ -164,4 +240,5 @@ class NetcatClient(asyncore.dispatcher):
 
 
 if __name__ == '__main__':
-    start_server(True)
+    #start_server(True)
+    start_server(False)
