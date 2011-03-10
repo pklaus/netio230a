@@ -33,7 +33,7 @@ import hashlib
 # For sys.exit():
 import sys
 
-import pdb ## use with pdb.set_trace()
+#import pdb ## use with pdb.set_trace()
 
 # Koukaam Netio230A Behaviour:
 N_WELCOME = "100 HELLO %X - KSHELL V1.2" # welcome message
@@ -73,7 +73,7 @@ class FakeNetio230aHandler(SocketServer.BaseRequestHandler):
             what_to_do = self.process(self.receive())
             if what_to_do[0] == 'quit':
                 break
-            pdb.set_trace()
+            #pdb.set_trace()
             if what_to_do[0] == 'login':
                 if ADMIN_USERNAME == what_to_do[1] and ADMIN_PASSWORD == what_to_do[2]: auth = True
             if what_to_do[0] == 'clogin':
@@ -240,5 +240,5 @@ class NetcatClient(asyncore.dispatcher):
 
 
 if __name__ == '__main__':
-    #start_server(True)
-    start_server(False)
+    start_server(True)
+    #start_server(False)
