@@ -168,7 +168,7 @@ def start_server(show_client):
         server_thread.daemon = True
         server_thread.start()
         try:
-            nc = NetcatClient2()
+            nc = NetcatClient()
             nc.interactive(fake_server_ip, fake_server_port)
         except NameError:
             print "The client shut down the connection. Closing."
@@ -189,7 +189,7 @@ class AlarmException(Exception):
     pass
 def alarmHandler(signum, frame):
     raise AlarmException
-class NetcatClient2(object):
+class NetcatClient(object):
     def interactive(self,host,port):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.client.connect( (host, port) )
@@ -211,33 +211,6 @@ class NetcatClient2(object):
             if not data: break
             print data,
         self.connected = False
-
-
-# for the client:
-import asyncore, socket
-
-class NetcatClient(asyncore.dispatcher):
-    def __init__(self, host, port):
-        asyncore.dispatcher.__init__(self)
-        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.connect( (host, port) )
-        self.connected = True
-        self.buffer = ""
-    def run(self):
-        asyncore.loop(1)
-    def handle_connect(self):
-        print "connection started"
-    def handle_close(self):
-        self.close()
-        self.connected = False
-    def handle_read(self):
-        print self.recv(8192)
-    def writable(self):
-        return (len(self.buffer) > 0)
-    def handle_write(self):
-        sent = self.send(self.buffer)
-        self.buffer = self.buffer[sent:]
-
 
 if __name__ == '__main__':
     start_server(True)
