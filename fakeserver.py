@@ -169,7 +169,7 @@ def start_server(show_client):
         server_thread.start()
         try:
             nc = NetcatClient()
-            nc.interactive(fake_server_ip, fake_server_port)
+            nc.interactive(fake_server_ip, fake_server_port,"fakeserver-logfile.txt")
         except NetcatClientConnectionClosed:
             print "The client is now disconnected from the server."
         except KeyboardInterrupt:
@@ -192,10 +192,17 @@ class AlarmException(Exception):
 def alarmHandler(signum, frame):
     raise AlarmException
 class NetcatClient(object):
-    def interactive(self,host,port):
+    def interactive(self,host,port,logfile_name=""):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.client.connect( (host, port) )
         self.connected = True
+        try:
+            if logfile_name == "": raise Error
+            self.logfile = open(logfile_name,"a")
+            self.logfile.write("\n")
+            self.logging = True
+        except:
+            pass
         read_thread = threading.Thread(target=self.read)
         read_thread.daemon = True
         read_thread.start()
@@ -203,16 +210,19 @@ class NetcatClient(object):
         while True:
             try:
                 signal.alarm(1)
-                self.client.send(raw_input())
+                user_input = raw_input()
+                if self.logging: self.logfile.write(user_input+"\n")
+                self.client.send(user_input)
                 signal.alarm(0)
             except AlarmException:
                 if not self.connected: break
         raise NetcatClientConnectionClosed
     def read(self):
         while True:
-            data = self.client.recv(8192)
-            if not data: break
-            print data,
+            server_response = self.client.recv(8192)
+            if not server_response: break
+            if self.logging: self.logfile.write(server_response)
+            print server_response,
         self.connected = False
 
 if __name__ == '__main__':
