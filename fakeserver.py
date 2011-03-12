@@ -170,8 +170,8 @@ def start_server(show_client):
         try:
             nc = NetcatClient()
             nc.interactive(fake_server_ip, fake_server_port)
-        except NameError:
-            print "The client shut down the connection. Closing."
+        except NetcatClientConnectionClosed:
+            print "The client is now disconnected from the server."
         except KeyboardInterrupt:
             print("  [CTRL]-[C] catched, exiting.")
     else:
@@ -185,6 +185,8 @@ def start_server(show_client):
 
 import socket, signal
 
+class NetcatClientConnectionClosed(Exception):
+    pass
 class AlarmException(Exception):
     pass
 def alarmHandler(signum, frame):
@@ -205,6 +207,7 @@ class NetcatClient(object):
                 signal.alarm(0)
             except AlarmException:
                 if not self.connected: break
+        raise NetcatClientConnectionClosed
     def read(self):
         while True:
             data = self.client.recv(8192)
