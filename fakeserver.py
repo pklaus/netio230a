@@ -93,7 +93,7 @@ class FakeNetio230aHandler(SocketServer.BaseRequestHandler):
             if what_to_do[0] == 'port_list':
                 self.send(N_OK + ''.join([str(int(status)) for status in fake_server.getOutlets()]))
             if what_to_do[0] == 'port_set':
-                fake_server.setOutlet(what_to_do[1],what_to_do[2])
+                fake_server.setOutlet(what_to_do[1]-1,what_to_do[2])
                 self.send(N_OK_L)
             if what_to_do[0] == 'invalid_parameter':
                 self.send(N_INV_P)
