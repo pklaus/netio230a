@@ -37,7 +37,7 @@ import sys
 
 # Koukaam Netio230A Behaviour:
 N_WELCOME = "100 HELLO %X - KSHELL V1.2" # welcome message
-N_OK = "OK " # OK prefix
+N_OK = "250 " # OK prefix
 N_OK_L = "250 OK" # complete OK line
 N_INV_V = "500 INVALID VALUE"
 N_INV_P = "501 INVALID PARAMETR"
@@ -58,6 +58,7 @@ class InvPError(Exception):
 class FakeNetio230aHandler(SocketServer.BaseRequestHandler):
 
     def send(self,message):
+        fake_server.log(message+N_LINE_ENDING)
         self.request.send(message+N_LINE_ENDING)
 
     def receive(self):
@@ -105,7 +106,8 @@ class FakeNetio230aHandler(SocketServer.BaseRequestHandler):
                 self.send(N_UNKNOWN)
         self.send(N_BYE)
 
-    def process(self,data):     
+    def process(self,data):
+        fake_server.log(data+"\n")
         data = data.strip()
         if data == 'port list':
             return ['port_list']
@@ -141,7 +143,7 @@ class FakeNetio230aHandler(SocketServer.BaseRequestHandler):
 
 class FakeNetio230a(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
-    def __init__(self, server_address, RequestHandlerClass):
+    def __init__(self, server_address, RequestHandlerClass,logfile_name=""):
         ### Seems like we don't really need this line (at least with Python 2.7 on Mac OS X):
         self.allow_reuse_address = True
         ## with Python 3 we would use something like:
@@ -150,26 +152,69 @@ class FakeNetio230a(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         SocketServer.TCPServer.__init__(self, server_address, RequestHandlerClass)
 
         self.outlets = [False,False,False,False]
+        if logfile != "":
+            self.logfile = open(logfile_name,'a')
+            self.logging = True
 
     def setOutlet(self, which, to):
         self.outlets[which]=bool(to)
 
     def getOutlets(self):
         return self.outlets
+    
+    def log(self,message):
+        if self.logging: self.logfile.write(message)
 
-fake_server = FakeNetio230a(("", 0), FakeNetio230aHandler)
 
-def start_server(show_client):
+import socket, signal
+class NetcatClientConnectionClosed(Exception):
+    pass
+class AlarmException(Exception):
+    pass
+def alarmHandler(signum, frame):
+    raise AlarmException
+CLIENT_LINE_ENDING = "\n"
+class NetcatClient(object):
+    def interactive(self,host,port):
+        self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.client.connect( (host, port) )
+        self.connected = True
+        read_thread = threading.Thread(target=self.read)
+        read_thread.daemon = True
+        read_thread.start()
+        signal.signal(signal.SIGALRM, alarmHandler)
+        while True:
+            try:
+                signal.alarm(1)
+                user_input = raw_input()
+                self.client.send(user_input+CLIENT_LINE_ENDING)
+                signal.alarm(0)
+            except AlarmException:
+                if not self.connected: break
+        raise NetcatClientConnectionClosed
+    def read(self):
+        while True:
+            server_response = self.client.recv(8192)
+            if not server_response: break
+            print server_response,
+        self.connected = False
+
+# we need to initialize the variable here, because we need the global scope:
+fake_server = None
+
+def start_server(tcp_port, start_client, logfile):
+    global fake_server
+    fake_server = FakeNetio230a(("", tcp_port), FakeNetio230aHandler,logfile)
     fake_server_ip, fake_server_port = fake_server.server_address
     print("Fake Netio230A server reachable on 'localhost' on port %i" % fake_server_port)
-    if show_client:
+    if start_client:
         # If we want a client to show up, we have to put the server to a background thread:
         server_thread = threading.Thread(target=fake_server.serve_forever,args=(0.3,))
         server_thread.daemon = True
         server_thread.start()
         try:
             nc = NetcatClient()
-            nc.interactive(fake_server_ip, fake_server_port,"fakeserver-logfile.txt")
+            nc.interactive(fake_server_ip, fake_server_port)
         except NetcatClientConnectionClosed:
             print "The client is now disconnected from the server."
         except KeyboardInterrupt:
@@ -182,49 +227,10 @@ def start_server(show_client):
             sys.exit(1)
     sys.exit(0)
 
-
-import socket, signal
-
-class NetcatClientConnectionClosed(Exception):
-    pass
-class AlarmException(Exception):
-    pass
-def alarmHandler(signum, frame):
-    raise AlarmException
-class NetcatClient(object):
-    def interactive(self,host,port,logfile_name=""):
-        self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.client.connect( (host, port) )
-        self.connected = True
-        try:
-            if logfile_name == "": raise Error
-            self.logfile = open(logfile_name,"a")
-            self.logfile.write("\n")
-            self.logging = True
-        except:
-            pass
-        read_thread = threading.Thread(target=self.read)
-        read_thread.daemon = True
-        read_thread.start()
-        signal.signal(signal.SIGALRM, alarmHandler)
-        while True:
-            try:
-                signal.alarm(1)
-                user_input = raw_input()
-                if self.logging: self.logfile.write(user_input+"\n")
-                self.client.send(user_input)
-                signal.alarm(0)
-            except AlarmException:
-                if not self.connected: break
-        raise NetcatClientConnectionClosed
-    def read(self):
-        while True:
-            server_response = self.client.recv(8192)
-            if not server_response: break
-            if self.logging: self.logfile.write(server_response)
-            print server_response,
-        self.connected = False
-
 if __name__ == '__main__':
-    start_server(True)
-    #start_server(False)
+    # we want to be able to use arguments for the tool:
+    tcp_port = 0 # 0 for a random free port / any other port for a manual choice
+    start_client = True # start the interactive client
+    logfile = "fakeserver-logfile.txt" # setup a logfile to write to
+    # sys.exit('Usage: %s [tcp_port [-c]]\ntcp_port  is the port you want the fake server to listen to\n-c  is a switch to start a client with the server.' % sys.argv[0])
+    start_server(tcp_port, start_client, logfile)
