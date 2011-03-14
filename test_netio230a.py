@@ -39,7 +39,7 @@ class TestNETIO230A(unittest.TestCase):
 
     def setUp(self):
         """  setUp() gets executed before every test_SOMETHING() test in this class.  """
-        self.fake_server = fakeserver.FakeNetio230a(("", 0), fakeserver.FakeNetio230aHandler)
+        self.fake_server = fakeserver.FakeNetio230aServer(("", 0), fakeserver.FakeNetio230aServerHandler)
         self.fake_server_ip, self.fake_server_port = self.fake_server.server_address
         # Start a thread with the server -- that thread will then start one more thread for each request
         # (but we want to listen for shutdown requests every millisecond)
