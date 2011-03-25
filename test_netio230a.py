@@ -39,20 +39,20 @@ class TestNETIO230A(unittest.TestCase):
 
     def setUp(self):
         """  setUp() gets executed before every test_SOMETHING() test in this class.  """
-        self.fake_server = fakeserver.FakeNetio230aServer(("", 0), fakeserver.FakeNetio230aServerHandler)
-        self.fake_server_ip, self.fake_server_port = self.fake_server.server_address
+        fakeserver.fake_server = fakeserver.FakeNetio230aServer(("", 0), fakeserver.FakeNetio230aServerHandler,"test_netio230a.fakeserver.log")
+        self.fake_server_ip, self.fake_server_port = fakeserver.fake_server.server_address
         # Start a thread with the server -- that thread will then start one more thread for each request
         # (but we want to listen for shutdown requests every millisecond)
-        self.server_thread = threading.Thread(target=self.fake_server.serve_forever,args=(0.001,))
+        self.server_thread = threading.Thread(target=fakeserver.fake_server.serve_forever,args=(0.001,))
         # Exit the server thread when the main thread terminates
         self.server_thread.daemon = True
         self.server_thread.start()
 
     def tearDown(self):
         """  tearDown() gets executed after every test_SOMETHING() test in this class.  """
-        self.fake_server.shutdown()
+        fakeserver.fake_server.shutdown()
         # we need server_close() too because the socket would remain opened otherwise:
-        self.fake_server.server_close() # see <http://stackoverflow.com/questions/5218159>
+        fakeserver.fake_server.server_close() # see <http://stackoverflow.com/questions/5218159>
 
     def test_for_invalid_server(self):
         ## Test for exception:
