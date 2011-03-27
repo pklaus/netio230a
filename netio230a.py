@@ -20,18 +20,34 @@
 #   along with netio230a.  If not, see <http://www.gnu.org/licenses/>.
 
 
-
-# This class represents the multiple plug hardware Koukaam NET-IO 230A
-# It can be configured using raw TCP communication.
-# The class aimes at providing complete coverage of the functionality of the box
-#  but not every action is supported yet.
-
-
-
-###--------- ToDo next ------------
-# http://koukaam.se/koukaam/forum/viewthread.php?forum_id=18&thread_id=399
-# Command for enable wd with 360s delay on output 2:
-# port wd 2 enable 192.168.10.101 10 360 1 3 enable enable
+#  ,--------------------------------------------------------------------------------.
+#  |                                                                                |
+#  |          __________________________________________________________            |
+#  |         /                                                          \           |
+#  |        /                                Artwork by Philipp Klaus    \          |
+#  |       /                                                              \         |
+#  |      /                                                                \        |
+#  |     /                                                                  \       |
+#  |    /                                                                    \      |
+#  |   .----------------------------------------------------------------------.     |
+#  |   |  NETIO-230A     Output        RS-232C     AUX           Network      |     |
+#  |   |                                                 on/off     __        |     |
+#  |   |               .  .  .  .    O\'''''''/O   ...    _  _     |  |       |     |
+#  |   |                               '''''''     | |   |_||_|    |,,|       |     |
+#  |   \               1  2  3  4                  '''                        |     |
+#  |    `-._______________________________________________________________,,--'     |
+#  |                                                                                |
+#  | This class represents the multiple plug hardware Koukaam NET-IO 230A.          |
+#  | It can be configured using raw TCP communication.                              |
+#  | The class aimes at providing complete coverage of the functionality of the box |
+#  | but not every action is supported yet.                                         |
+#  |                                                                                |
+#  |      -------- ToDo next ------------                                           |
+#  |  * http://koukaam.se/koukaam/forum/viewthread.php?forum_id=18&thread_id=399    |
+#  |  * Command for enable wd with 360s delay on output 2:                          |
+#  |  * port wd 2 enable 192.168.10.101 10 360 1 3 enable enable                    |
+#  |                                                                                |
+#  `--------------------------------------------------------------------------------'
 
 
 #For PyS60 we need this:
