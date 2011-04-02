@@ -41,6 +41,7 @@ N_OK = "250 " # OK prefix
 N_OK_L = "250 OK" # complete OK line
 N_VER = "250 V %s"
 N_ALIAS = "250 %s"
+N_SWDELAY = "250 %s"
 N_INV_V = "500 INVALID VALUE"
 N_INV_P = "501 INVALID PARAMETR"
 N_UNKNOWN = "502 UNKNOWN COMMAND" # happens when you enter something like `prt`
@@ -106,6 +107,9 @@ class FakeNetio230aServerHandler(SocketServer.BaseRequestHandler):
             #pdb.set_trace()
             if what_to_do[0] == 'port_list':
                 self.send(N_OK + ''.join([str(int(status)) for status in device.getOutlets()]))
+            if what_to_do[0] == 'port_setup':
+                outlet = device.outlets[what_to_do[1]-1]
+                self.send(N_OK + '"%s" %s %d %d' % (outlet.name, "timer" if outlet.timer.enabled else "manual", outlet.interrupt_delay, outlet.power_status_after_power_on) )
             if what_to_do[0] == 'port_set':
                 device.setOutlet(what_to_do[1]-1,what_to_do[2])
                 self.send(N_OK_L)
@@ -121,6 +125,8 @@ class FakeNetio230aServerHandler(SocketServer.BaseRequestHandler):
                 self.send(N_VER % device.version)
             if what_to_do[0] == 'get_alias':
                 self.send(N_ALIAS % device.alias)
+            if what_to_do[0] == 'system_swdelay':
+                self.send(N_SWDELAY % device.swdelay)
             if what_to_do[0] == 'set_alias':
                 device.alias = what_to_do[1]
                 self.send(N_OK_L)
@@ -150,31 +156,51 @@ class FakeNetio230aServerHandler(SocketServer.BaseRequestHandler):
             new_alias = data.split(' ')[1]
             if len(new_alias) > N_ALIAS_LENGTH: return ['invalid_parameter']
             return ['set_alias', new_alias]
+        if data == 'system swdelay':
+            return ['system_swdelay']
         if data == 'port list':
             return ['port_list']
         if self.begins(data,'port'):
             try:
                 fragments = data.split(' ')
-                which = int(fragments[1])
-                to = int(fragments[2])
-                if not which in range(1,N_NUM_OUTLETS+1):
-                    raise InvPError
-                if not (to in [0,1]):
-                    raise InvVError
-            except InvVError:
-                return ['invalid_value']
-            except InvPError:
-                return ['invalid_parameter']
-            except ValueError:
-                return ['invalid_parameter']
-            return ['port_set',which,bool(to)]
+                second_part = fragments[1]
+            except IndexError:
+                return ['invalid_parameter'] # this is what you get for the invalid command `port`
+            if second_part == 'setup':
+                pass
+                try:
+                   which = int(fragments[2])
+                   if not which in range(1,N_NUM_OUTLETS+1):
+                       raise InvPError
+                except InvPError:
+                    return ['invalid_parameter']
+                except IndexError:
+                    return ['invalid_parameter']
+                return ['port_setup',which]
+            elif len(second_part)==1:
+                try:
+                    which = int(second_part)
+                    if not which in range(1,N_NUM_OUTLETS+1):
+                        raise InvPError
+                    to = int(fragments[2])
+                    if not (to in [0,1]):
+                        raise InvVError
+                except InvVError:
+                    return ['invalid_value']
+                except InvPError:
+                    return ['invalid_parameter']
+                except ValueError:
+                    return ['invalid_parameter']
+                except IndexError:
+                    return ['port_get',which]
+                return ['port_set',which,bool(to)]
         return ['unknown_command']
 
     def begins(self,data,with_this):
         return data[0:len(with_this)] == with_this
 
 class FakeNetio230aTimer(object):
-    enabled = True
+    enabled = False
     mode = 0 # once (0), daily (1), weekly (2)
     on_time = None
     off_time = None
@@ -188,10 +214,12 @@ class FakeNetio230aWatchdog(object):
     ping_interval = 3 # interval between ping commands [in seconds]
     max_retry = 3 # how many times should be the output restarted
     retry_power_off = False # keep the output OFF after Max retry limit is reached
-    send_email = False
+    send_email = False # send an email after power cycle and when max retry is reached
 
 class FakeNetio230aOutlet(object):
     power_status = False
+    power_status_after_power_on = False #default output state after power on
+    name = "outlet x"
     timer = FakeNetio230aTimer()
     watchdog = FakeNetio230aWatchdog()
     interrupt_delay = 5 # seconds
