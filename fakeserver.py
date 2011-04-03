@@ -29,6 +29,8 @@ import threading
 import random
 import string
 import hashlib
+import re
+import datetime
 
 # For sys.exit():
 import sys
@@ -42,6 +44,7 @@ N_OK_L = "250 OK" # complete OK line
 N_VER = "250 V %s"
 N_ALIAS = "250 %s"
 N_SWDELAY = "250 %s"
+N_BOOLEAN = "250 %s"
 N_INV_V = "500 INVALID VALUE"
 N_INV_P = "501 INVALID PARAMETR"
 N_UNKNOWN = "502 UNKNOWN COMMAND" # happens when you enter something like `prt`
@@ -53,6 +56,7 @@ N_LINE_ENDING = "\r\n"
 
 N_ALIAS_LENGTH = 18
 N_NUM_OUTLETS = 4
+N_MAX_SWDELAY = 999
 
 # Fake Netio230A configuration:
 ADMIN_USERNAME="admin"
@@ -123,16 +127,28 @@ class FakeNetio230aServerHandler(SocketServer.BaseRequestHandler):
                 self.send(N_ALR_AUTH)
             if what_to_do[0] == 'version':
                 self.send(N_VER % device.version)
-            if what_to_do[0] == 'get_alias':
-                self.send(N_ALIAS % device.alias)
-            if what_to_do[0] == 'system_swdelay':
-                self.send(N_SWDELAY % device.swdelay)
             if what_to_do[0] == 'set_alias':
                 device.alias = what_to_do[1]
+                self.send(N_OK_L)
+            if what_to_do[0] == 'get_alias':
+                self.send(N_ALIAS % device.alias)
+            if what_to_do[0] == 'get_system_discover':
+                self.send(N_BOOLEAN % ("enable" if device.discover else "disable") )
+            if what_to_do[0] == 'set_system_discover':
+                device.discover = what_to_do[1]
+                self.send(N_OK_L)
+            if what_to_do[0] == 'get_system_swdelay':
+                self.send(N_SWDELAY % device.swdelay)
+            if what_to_do[0] == 'set_system_swdelay':
+                device.swdelay = what_to_do[1]
                 self.send(N_OK_L)
             if what_to_do[0] == 'quit':
                 break
         self.send(N_BYE)
+
+    # still unknown commands:
+    #port 1
+    #email server
 
     def process(self,data,already_authenticated = True):
         self.fakeserver.log(data+"\n")
@@ -156,8 +172,25 @@ class FakeNetio230aServerHandler(SocketServer.BaseRequestHandler):
             new_alias = data.split(' ')[1]
             if len(new_alias) > N_ALIAS_LENGTH: return ['invalid_parameter']
             return ['set_alias', new_alias]
+        if data == 'system discover':
+            return ['get_system_discover']
+        if self.begins(data,'system discover'):
+            try:
+                new = data.split(" ")[2][0]
+                if new == 'e': return ['set_system_discover', True]
+                if new == 'd': return ['set_system_discover', False]
+            except:
+                pass
+            return ['invalid_value']
         if data == 'system swdelay':
-            return ['system_swdelay']
+            return ['get_system_swdelay']
+        if self.begins(data,'system swdelay '):
+            try:
+                value = int(re.match("system swdelay ([0-9]*)", data).groups()[0])
+            except:
+                return ['invalid_value']
+            if value > N_MAX_SWDELAY: return ['invalid_value']
+            return ['set_system_swdelay', value]
         if data == 'port list':
             return ['port_list']
         if self.begins(data,'port'):
@@ -225,21 +258,40 @@ class FakeNetio230aOutlet(object):
     interrupt_delay = 5 # seconds
 
 class FakeNetio230a(object):
-    outlets = [ FakeNetio230aOutlet() for i in range(N_NUM_OUTLETS)]
+    ### Artificial addons of the fakeserver:
     logging = False
-    version = "2.33"
-    alias = "Zarathustra"
-    swdelay = 15
-    dhcp_mode = False
+    ### implicit properties of the device:
+    outlets = [ FakeNetio230aOutlet() for i in range(N_NUM_OUTLETS)]
+    ### Configuration as listed on /system.htm
     ip = "192.168.1.101"
     subnet = "255.255.255.0"
     gateway = "192.168.1.1"
     dns = "192.168.1.1"
-    timezone = 7200
-    time_offset = 0
+    dhcp_mode = False
+    swdelay = 15 # Switch delay (x0.1s): delay between triggering two outputs
+    system_messages = True
+    kshell_network_mode = True # If True listens to the network if False listens on the RS232 interface
+    kshell_port = 1234
+    web_port = 80
+    alias = "Zarathustra"
+    version = "2.33"
+    #### hidden system configurations:
+    discover = True
+    ### Date & time as listed on /timesetup.htm
+    up_since = datetime.datetime.now()
     sntp_enabled = True
-    sntp_server = "ntp.pool.org"
     sntp_synchronized = False
+    sntp_server = "ntp.pool.org"
+    timezone = 7200 # Local time offset in minutes
+    #Daylight saving time: 	Enable Disable
+    #Daylight saving time begin: 	- -   ::
+    #Daylight saving time end:
+    ### E-mail configuration as listed on /email.htm
+    email_from = "mail@example.com"
+    email_to = "mail@example.com"
+    email_smtp_server = "smtp.example.com"
+    email_subject = "Email from NETIO230A"
+    
     def setOutlet(self, which, to):
         self.outlets[which].power_status = bool(to)
     def getOutlets(self):
