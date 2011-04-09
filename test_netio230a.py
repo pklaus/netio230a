@@ -78,6 +78,11 @@ class TestNETIO230A(unittest.TestCase):
         #timezoneOffset = netio.getSystemTimezone()
 
 if __name__ == '__main__':
+    print "\nThis is the unittest for the class netio230a.py.\n"
+    print "You might also consider running a test of the device responses of the\n" + \
+          "NETIO230[A/B] (and the fake server) by using the test tool\n" + \
+          "\"Automated test of the responses of a Koukaam NETIO230[A/B] device\"\n" + \
+          "which can be found on <https://gist.github.com/901959>\n"
     try:
         cProfile.run('unittest.main()')
     except:
