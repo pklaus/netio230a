@@ -5,7 +5,8 @@
 This software (netio230a) provides an interface via TCP to control the Koukaam
 NETIO 230A. The software consists of a class to represent the possibilities of
 the product and example code to show how to use it. It also provides a command
-line tool to switch on and off ports on the NETIO230A.
+line tool to switch on and off ports on the NETIO-230A.  
+The latest changes also make it work for the Koukaam NETIO-230B.
 
 If you have an idea for the software or want to report a bug, let me know via
 email!
