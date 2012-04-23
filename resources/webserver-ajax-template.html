@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>NETIO230A Status</title>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <link rel="shortcut icon" href="/static/netio230a_icon.png">
+  <!--  Let's include jQuery and jQuery UI (http://jqueryui.com) and the CSS
+        from Google CDN: http://code.google.com/intl/de/apis/libraries/devguide.html#jquery)  -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js" type="text/javascript"></script>
+  <!--  We include some Google Web Fonts (http://www.google.com/webfonts)  -->
+  <link href='http://fonts.googleapis.com/css?family=Salsa' rel='stylesheet' type='text/css'>
+  <!--  Now follows our custom CSS -->
+  <style type="text/css">
+    h1, h2, h3, h4, h5, h6, p, span { font-family: 'Salsa', cursive; color: white;}
+    h1 { margin: -4px 0 5px 0; }
+    a { color: yellow; }
+    a:hover { color: Gold; }
+    #netio230a {
+      text-align: center;
+      width: 80%;
+      min-width: 230px;
+      max-width: 270px;
+      margin: auto 20px;
+      padding: 20px;
+
+      -moz-border-radius: 15px;
+      border-radius: 15px;
+
+      /* Gradient from http://gradients.glrzad.com/ */
+      background-image: linear-gradient(bottom, rgb(140,12,16) 23%, rgb(168,39,42) 62%, rgb(202,67,72) 81%);
+      background-image: -o-linear-gradient(bottom, rgb(140,12,16) 23%, rgb(168,39,42) 62%, rgb(202,67,72) 81%);
+      background-image: -moz-linear-gradient(bottom, rgb(140,12,16) 23%, rgb(168,39,42) 62%, rgb(202,67,72) 81%);
+      background-image: -webkit-linear-gradient(bottom, rgb(140,12,16) 23%, rgb(168,39,42) 62%, rgb(202,67,72) 81%);
+      background-image: -ms-linear-gradient(bottom, rgb(140,12,16) 23%, rgb(168,39,42) 62%, rgb(202,67,72) 81%);
+      background-image: -webkit-gradient(
+        linear,
+        left bottom,
+        left top,
+        color-stop(0.23, rgb(140,12,16)),
+        color-stop(0.62, rgb(168,39,42)),
+        color-stop(0.81, rgb(202,67,72))
+      );
+    }
+    div#loading , div#error {
+      -moz-border-radius: 10px; border-radius: 10px;
+      padding: 5px 10px 5px 25px;
+    }
+    div#loading {
+      background: #CCF url(/static/updating.gif) no-repeat;
+      color: #300;
+    }
+    div#error {
+      display: none;
+      background: #A33 url(/static/error.png) no-repeat 10px 30%;
+      color: #CFF;
+    }
+    div#powersockets {
+      display: table;
+      width: 100%;
+      margin-top: 20px;
+    }
+    div.ps {
+      height: 55px;
+      display: table-row;
+      padding: 10px;
+    }
+    div.ps span {
+      text-align: left;
+      display: table-cell;
+    }
+    div.ps span.pslabel {
+      width: 20%;
+    }
+    div.ps span.psname {
+      width: 50%;
+      font-size: large;
+      color: #AFF;
+    }
+    div.ps span.psstatus {
+      width: 30%;
+    }
+    #inputText {
+      padding: 3px 15px 3px 5px;
+      border: 3px solid #c7c7c7;
+      border-radius: 100px; -moz-border-radius: 100px; -webkit-border-radius: 100px;
+      font: italic 14px Georgia; color: #898989;
+      outline: none; /*Remove Chrome and Safari glows on focus*/
+    }
+    #inputText.active {
+      border: 3px solid #abd2ff;
+    }
+    #about {
+      font-size: x-small;
+    }
+    div.ps a {
+      background-image: url(/static/off.png);
+      background-repeat: no-repeat;
+      cursor: pointer;
+      border-radius: 10px; -moz-border-radius: 10px; -webkit-border-radius: 10px;
+      border-top: solid 2px #eaeaea;
+      border-left: solid 2px #eaeaea;
+      border-bottom: solid 2px #777;
+      border-right: solid 2px #777;
+      padding: 10px 10px 15px 50px;
+    }
+    div.ps a.on {
+      background-image: url(/static/on.png);
+      border-top: solid 2px #777;
+      border-left: solid 2px #777;
+      border-bottom:solid 2px  #eaeaea;
+      border-right: solid 2px #eaeaea;
+    }
+  </style>
+  <script type="text/javascript">
+    function showUpdatingStatus() {
+      $('#error').hide();
+      $('#loading').text('Updating Status...');
+      $('#loading').show();
+    }
+    function showProcessingRequest() {
+      $('#error').hide();
+      $('#loading').text('Processing Request...');
+      $('#loading').show();
+    }
+    function errorOccured(errorObj, message){
+      $('#loading').hide();
+      $('#error').show();
+      if (errorObj.status == 500)
+        $('#error').text("The server could not process the request. Please contact the system administrator.");
+      else
+        $('#error').text("An unknown error occured. Please contact the system administrator.");
+    }
+    function updateStatus(){
+      showUpdatingStatus();
+      $.ajax( {
+        url: "/api/status",
+        dataType: 'json',
+        timeout: 4500,
+        success: function(data) {
+          $("h1#alias").text(data.device_alias);
+          document.title = data.device_alias;
+          $("#powersockets").empty();
+          $.each(data.power_sockets, function(i,item){
+            // $("<div/>", {text: item.name}).appendTo("#powersockets");
+            $("<div/>", { id: 'ps'+i, class: 'ps'} ).appendTo("#powersockets");
+            $("<span/>", { class: 'pslabel', text: '#'+(i+1) }).appendTo("#ps"+i);
+            $("<span/>", { class: 'psname', text: item.name }).appendTo("#ps"+i);
+            $("<span/>", { id: 'psstatus'+i, class: 'psstatus' }).appendTo("#ps"+i);
+            $("<a/>", { id: 'psbutton'+i, title: 'Click to switch '+(!item.power_on ? 'On' : 'Off'), text: (item.power_on ? 'On' : 'Off') }).appendTo("#psstatus"+i);
+            if (item.power_on) $('a#psbutton'+i).addClass('on');
+            $('a#psbutton'+i).click(function(){
+              if ($('#loading').is(":visible")) return;
+              showProcessingRequest();
+              var num = $(this).attr("id").slice(-1);
+              //$("#infobox").text(num);
+              $.ajax({
+                type: 'POST',
+                url:  "/api/port",
+                dataType: 'json',
+                timeout: 4500,
+                data: {  port: parseInt(num)+1,
+                         power_on: !$(this).hasClass("on")  },
+                success: function() {
+                  updateStatus();
+                },
+                error: errorOccured,
+              });
+            });
+            $('#loading').hide();
+          });
+        },
+        error: errorOccured,
+        } );
+    }
+$(document).ready(function () {
+        updateStatus();
+    });
+  </script>
+</head>
+<!-- <body onload="setInitialQRcode();"> -->
+  <div id="netio230a">
+    <h1 id="alias">NETIO 230A</h1>
+    <!-- 
+    <form action="javascript:updateQRcode()">
+      <input id="inputText" type="text" onchange="this.form.submit();" />
+    </form>
+    -->
+    <div id="powersockets"> </div>
+    <div id="loading">Updating Status...</div>
+    <div id="error"></div>
+    <div id="infobox"></div>
+    <p id="about"> This is a <a title="Bottle is a fast, simple and lightweight WSGI micro web-framework for Python." href="http://bottlepy.org/docs/dev/">bottle</a> project by <a href="https://github.com/pklaus">pklaus</a> for <a href="http://pklaus.github.com/netio230a/">netio230a</a> hosted on <a href="https://github.com">Github</a> </p>
+  </div>
+</body>
+</html>
