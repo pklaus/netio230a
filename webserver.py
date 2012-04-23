@@ -20,6 +20,18 @@
 #   along with netio230a.  If not, see <http://www.gnu.org/licenses/>.
 
 
+### HowTo
+#  To run this Bottle web application, you have to install
+#  the python modules
+#    * bottle
+#    * cherrypy
+#  You can do this via `pip install bottle`  etc.
+#  Then you should adjust the `host`, `pw` and `tcp_port`
+#  settings in this file.
+#  When finished, run this file via `./webserver.py`
+#  and you should be able to reach the site via
+#  http://localhost:8080
+
 
 ## import the netio230a class:
 try:
@@ -85,4 +97,10 @@ def static(path):
 def index():
     return static('webserver-ajax-template.html')
     
-run( root, server='cherrypy', host="::", port=8080, debug=True) 
+## Run with cherrypy server via IPv4:
+run( root, server='cherrypy', host="0.0.0.0", port=8080)
+## Run with cherrypy server via IPv6:
+#run( root, server='cherrypy', host="::", port=8080)
+
+## Run with bottle's standard server (IPv4):
+#run( root, host="localhost", port=8080, debug=True)
