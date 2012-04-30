@@ -106,7 +106,6 @@ class netio230a(object):
         """
         self.logging = False
         self.__pending_request = False
-        self.__relogin_try = False
         self.mean_request_time = INITIAL_WAIT_FOR_OTHER_REQUEST
         self.number_of_sent_requests = 0
         self.__last_request_received = time.time()
@@ -119,16 +118,16 @@ class netio230a(object):
         self.__power_sockets = [ PowerSocket() for i in range(4) ]
         self.__create_socket_and_login()
     
-    def __create_socket_and_login(self, relogin_try=False):
+    def __create_socket_and_login(self):
         # create a TCP/IP socket
         self.__s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try: # btsocket on PyS60 lacks this member function so we have to try it:
             self.__s.settimeout(TELNET_SOCKET_TIMEOUT)
         except:
             pass
-        self.__login(relogin_try)
+        self.__login()
  
-    def __login(self, relogin_try=False):
+    def __login(self):
         """Login to the server using the credentials given to the constructor.
            Note that this is a private method called by the constructor
            (so all connection details are set already)."""
@@ -177,7 +176,7 @@ class netio230a(object):
             loginString = "login " + self.__username + " " + self.__password + TELNET_LINE_ENDING
         try:
             # send login string and wait for the answer
-            response = self.__sendRequest(loginString, True, relogin_try)
+            response = self.__sendRequest(loginString, True)
         except NameError, error:
             self.disconnect()
             try:
@@ -345,10 +344,10 @@ class netio230a(object):
             #still missing: setWatchdogOn
     
     # generic method to send requests to the NET-IO 230A and checking the response
-    def __sendRequest(self,request,complainIfAnswerNot250=True, relogin_try=False):
+    def __sendRequest(self,request,complainIfAnswerNot250=True):
         counter = 0
         # in this loop we want to avoid errors for concurrent requests (from different threads etc.)
-        while self.__pending_request and not relogin_try:
+        while self.__pending_request:
             wait_time = self.mean_request_time*.5
             time.sleep(wait_time)
             counter += 1
