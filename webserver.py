@@ -34,46 +34,98 @@
 
 
 ## import the netio230a class:
-try:
-    import netio230a
-except:
-    from . import netio230a
+import netio230a
 
 
 host = "192.168.1.2"
-pw = "your choosen password"
-tcp_port = 23
+tcp_port = 1234
+username = "admin"
+password = "your choosen password"
+LOG_FILE = "./webserver-log.txt"
 
 
-from bottle import Bottle, run, request, static_file, HTTPError
+from bottle import Bottle, run, request, static_file, HTTPError, PluginError
 
+
+import inspect
+
+class Netio230aPlugin(object):
+    ''' This plugin passes a netio230a class handle to route callbacks
+    that accept a `netio` keyword argument.
+    It is based on the example on
+    http://bottlepy.org/docs/stable/plugindev.html#plugin-example-sqliteplugin
+    '''
+    name = 'netio'
+    api = 2
+
+    def __init__(self, host, username='admin', password='admin', tcp_port=23, keyword='netio'):
+         self.host = host
+         self.username = username
+         self.password = password
+         self.tcp_port = tcp_port
+         self.keyword = keyword
+
+    def setup(self, app):
+        ''' Make sure that other installed plugins don't affect the same
+            keyword argument.'''
+        for other in app.plugins:
+            if not isinstance(other, Netio230aPlugin): continue
+            if other.keyword == self.keyword:
+                raise PluginError("Found another Netio230a plugin with "\
+                "conflicting settings (non-unique keyword).")
+        try:
+            self.netio = netio230a.netio230a(self.host, self.username, self.password, True, self.tcp_port)
+            self.netio.enable_logging(open(LOG_FILE,'w'))
+        except Exception, e:
+            raise PluginError("Could not connect to the NETIO230A with hostname %s (username: %s). Error: %s" % (self.host, self.username, e) )
+
+    def apply(self, callback, context):
+        keyword = self.keyword
+        # Test if the original callback accepts a 'netio' keyword.
+        # Ignore it if it does not need a handle.
+        args = inspect.getargspec(context.callback)[0]
+        if keyword not in args:
+            return callback
+
+        def wrapper(*args, **kwargs):
+            netio = self.netio
+            # Add the connection handle as a keyword argument.
+            kwargs[keyword] = netio
+
+            try:
+                rv = callback(*args, **kwargs)
+            except NameError, e:
+                raise HTTPError(503, "NETIO230A not available: " + str(e) )
+            finally:
+                #netio.disconnect()
+                pass
+            return rv
+
+        # Replace the route callback with the wrapped one.
+        return wrapper
+
+    def close(self):
+        self.netio.disconnect()
+        self.netio = None
 
 api = Bottle()
-
-def getnetio():
-    try:
-        netio = netio230a.netio230a(host, "admin", pw, True, tcp_port)
-    except:
-        raise HTTPError(code=500, output='Could not communicate with the device')
-    return netio
+netio_plugin = Netio230aPlugin(host, username, password, tcp_port)
+api.install(netio_plugin)
 
 @api.post('/port')
-def port():
+def port(netio):
     port_num = int(request.forms.get('port'))
     power_on = request.forms.get('power_on').lower() in ['true', '1', 'on']
-    netio = getnetio()
     netio.setPowerSocketPower(port_num,power_on)
     status = dict()
     status['port'] = port_num
     status['power_on'] = power_on
     status['success'] = True
-    netio = None
     return status
 
 
 @api.route('/status')
-def status():
-    netio = getnetio()
+def status(netio):
     status = dict()
     status['version'] = netio.getFirmwareVersion()
     power_sockets = []
@@ -82,7 +134,6 @@ def status():
     status['power_sockets'] = power_sockets
     status['device_alias'] = netio.getDeviceAlias()
     status['system_discoverable'] = netio.getSystemDiscoverableUsingTool()
-    netio = None
     return status
 
 
