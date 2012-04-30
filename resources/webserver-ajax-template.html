@@ -4,9 +4,9 @@
   <title>NETIO230A Status</title>
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
   <link rel="shortcut icon" href="/static/netio230a_icon.png">
-  <!--  Let's include jQuery and jQuery UI (http://jqueryui.com) and the CSS
-        from Google CDN: http://code.google.com/intl/de/apis/libraries/devguide.html#jquery)  -->
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js" type="text/javascript"></script>
+  <!--  Let's include jQuery
+        from Google CDN: https://developers.google.com/speed/libraries/devguide#jquery -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js" type="text/javascript"></script>
   <!--  We include some Google Web Fonts (http://www.google.com/webfonts)  -->
   <link href='http://fonts.googleapis.com/css?family=Salsa' rel='stylesheet' type='text/css'>
   <!--  Now follows our custom CSS -->
@@ -126,9 +126,13 @@
       $('#loading').hide();
       $('#error').show();
       if (errorObj.status == 500)
-        $('#error').text("The server could not process the request. Please contact the system administrator.");
+        $('#error').text("There was some problem with the Netio230A Bottle server. This could be a bug in the web app software. Please contact the developer.");
+      else if (errorObj.status == 502)
+        $('#error').text("The intermediate gateway could not reach the web app server. Please make sure the Bottle web app is running.");
+      else if (errorObj.status == 503)
+        $('#error').text("The NETIO230A seems to be unavailable at the moment. Please contact the system administrator and retry later.");
       else
-        $('#error').text("An unknown error occured. Please contact the system administrator.");
+        $('#error').text("An unknown error ("+errorObj.status+") occured. Please contact the system administrator.");
     }
     function updateStatus(){
       showUpdatingStatus();
