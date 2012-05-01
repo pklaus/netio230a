@@ -90,7 +90,7 @@ class DeviceController(object):
             return
         configuration.changeConfiguration(configuration.UPDATE, '', host, tcp_port, username, password)
         
-        self.power_sockets = [bool(int(status)) for status in self.netio.getPowerSocketList()]
+        self.power_sockets = self.netio.getPowerSocketList()
         
         if self.netio == None:
             # wait 3 seconds:
@@ -204,7 +204,7 @@ class DeviceController(object):
         self.list_box.bind(key_codes.EKeySelect, self.cb_select)
 
     def update_status(self):
-        self.power_sockets = [bool(int(status)) for status in self.netio.getPowerSocketList()]
+        self.power_sockets = self.netio.getPowerSocketList()
         self.menu_list()
 
 class ChooseDevice(object):

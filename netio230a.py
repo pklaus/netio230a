@@ -268,10 +268,10 @@ class netio230a(object):
     def getPowerSocketList(self):
         """Sends request to the NETIO 230A to ask for the power socket status.
         
-        Returns string (4 chars long) specifying which power sockets are switched on/off.
+        'port list' returns a string (4 chars long) specifying which power sockets are switched on/off.
         Each char is representing the power status of one power socket: 0/1
-        For example: "1001" (power socket 1 and power socket 4 are on, all others off)"""
-        return self.__sendRequest("port list")
+        We convert them to a list of four boolean values: """
+        return [bool(int(status)) for status in self.__sendRequest("port list")]
     
     def getPowerSocketSetup(self,power_socket):
         """Sends request to the NETIO 230A to ask for the setup of the power socket given as parameter.
@@ -389,7 +389,7 @@ class netio230a(object):
             power_sockets.append( list(status_splitter) )
             self.__power_sockets[i].setName(power_sockets[i][0])
             self.__power_sockets[i].setPowerOnAfterPowerLoss(bool(int(power_sockets[i][3])))
-            self.__power_sockets[i].setPowerOn(bool(int(powerOnStatus[i])))
+            self.__power_sockets[i].setPowerOn(powerOnStatus[i])
             self.__power_sockets[i].setManualMode(power_sockets[i][1]=="manual")
             self.__power_sockets[i].setInterruptDelay(int(power_sockets[i][2]))
             #still missing: setWatchdogOn
