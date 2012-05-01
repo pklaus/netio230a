@@ -123,19 +123,26 @@ def port(netio):
     status['success'] = True
     return status
 
+@api.route('/ports/status')
+def ports_status(netio):
+    status = dict()
+    power_sockets = []
+    for power_on in netio.getPowerSocketList():
+        power_sockets.append( {'power_on': power_on} )
+    status['power_sockets'] = power_sockets
+    return status
 
-@api.route('/status')
-def status(netio):
+@api.route('/system/status')
+def system_status(netio):
     status = dict()
     status['version'] = netio.getFirmwareVersion()
+    status['device_alias'] = netio.getDeviceAlias()
+    status['system_discoverable'] = netio.getSystemDiscoverableUsingTool()
     power_sockets = []
     for power_socket_object in netio.getAllPowerSockets():
         power_sockets.append( {'power_on': power_socket_object.getPowerOn(), 'name': power_socket_object.getName()} )
     status['power_sockets'] = power_sockets
-    status['device_alias'] = netio.getDeviceAlias()
-    status['system_discoverable'] = netio.getSystemDiscoverableUsingTool()
     return status
-
 
 root = Bottle()
 root.mount(api, '/api')
@@ -147,11 +154,11 @@ def static(path):
 @root.route('/')
 def index():
     return static('webserver-ajax-template.html')
-    
+
 ## Run with cherrypy server via IPv4:
-run( root, server='cherrypy', host="0.0.0.0", port=8080)
+#run( root, server='cherrypy', host="0.0.0.0", port=8080)
 ## Run with cherrypy server via IPv6:
-#run( root, server='cherrypy', host="::", port=8080)
+run( root, server='cherrypy', host="::", port=8080)
 
 ## Run with bottle's standard server (IPv4):
-#run( root, host="localhost", port=8080, debug=True)
+#run( root, host="localhost", port=8080)

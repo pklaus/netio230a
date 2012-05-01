@@ -112,9 +112,14 @@
     }
   </style>
   <script type="text/javascript">
-    function showUpdatingStatus() {
+    function showUpdatingSystemStatus() {
       $('#error').hide();
-      $('#loading').text('Updating Status...');
+      $('#loading').text('Updating System Status...');
+      $('#loading').show();
+    }
+    function showUpdatingPortsStatus() {
+      $('#error').hide();
+      $('#loading').text('Updating Ports Status...');
       $('#loading').show();
     }
     function showProcessingRequest() {
@@ -134,10 +139,30 @@
       else
         $('#error').text("An unknown error ("+errorObj.status+") occured. Please contact the system administrator.");
     }
-    function updateStatus(){
-      showUpdatingStatus();
+    function updatePortsStatus(){
+      showUpdatingPortsStatus();
       $.ajax( {
-        url: "/api/status",
+        url: "/api/ports/status",
+        dataType: 'json',
+        timeout: 4500,
+        success: function(data) {
+          $.each(data.power_sockets, function(i,item){
+            if (item.power_on) $('a#psbutton'+i).addClass('on');
+            else $('a#psbutton'+i).removeClass('on');
+            $('a#psbutton'+i).text(item.power_on ? 'On' : 'Off'),
+            $('a#psbutton'+i).attr( {
+              title : 'Click to switch '+(!item.power_on ? 'On' : 'Off'),
+            } );
+            $('#loading').hide();
+          });
+        },
+        error: errorOccured,
+      } );
+    }
+    function updateSystemStatus(){
+      showUpdatingSystemStatus();
+      $.ajax( {
+        url: "/api/system/status",
         dataType: 'json',
         timeout: 4500,
         success: function(data) {
@@ -145,7 +170,6 @@
           document.title = data.device_alias;
           $("#powersockets").empty();
           $.each(data.power_sockets, function(i,item){
-            // $("<div/>", {text: item.name}).appendTo("#powersockets");
             $("<div/>", { id: 'ps'+i, class: 'ps'} ).appendTo("#powersockets");
             $("<span/>", { class: 'pslabel', text: '#'+(i+1) }).appendTo("#ps"+i);
             $("<span/>", { class: 'psname', text: item.name }).appendTo("#ps"+i);
@@ -156,7 +180,6 @@
               if ($('#loading').is(":visible")) return;
               showProcessingRequest();
               var num = $(this).attr("id").slice(-1);
-              //$("#infobox").text(num);
               $.ajax({
                 type: 'POST',
                 url:  "/api/port",
@@ -165,7 +188,7 @@
                 data: {  port: parseInt(num)+1,
                          power_on: !$(this).hasClass("on")  },
                 success: function() {
-                  updateStatus();
+                  updatePortsStatus();
                 },
                 error: errorOccured,
               });
@@ -174,10 +197,10 @@
           });
         },
         error: errorOccured,
-        } );
+      } );
     }
-$(document).ready(function () {
-        updateStatus();
+    $(document).ready(function () {
+        updateSystemStatus();
     });
   </script>
 </head>
