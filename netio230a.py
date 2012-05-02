@@ -465,6 +465,10 @@ class netio230a(object):
     
     def disconnect(self):
         try:
+            self.__watchSocketThread.cancel()
+        except:
+            pass
+        try:
             # send the quit command to the box (if we have an open connection):
             self.__send("quit".encode("ascii")+TELNET_LINE_ENDING.encode("ascii"))
             self.__receive()  # should give  110 BYE
