@@ -102,6 +102,8 @@ class DeviceController:
             self.netio.enable_logging(open(configuration.LOG_FILE,'w'))
         except StandardError, error:
             print(str(error))
+        except Exception, e:
+            print(str(e))
         
         self.builder = gtk.Builder()
         self.builder.add_from_file(getAbsoluteFilepath(DEVICE_CONTROLLER_UI))
@@ -144,6 +146,7 @@ class DeviceController:
             #    print 'Window was unminimized!'
     
     def cb_disconnect(self, button, *args):
+        self.netio.disconnect()
         self.controller.setNextStep("runDeviceSelector")
         gtk.main_quit()
         self.window.hide()
@@ -473,6 +476,7 @@ class DeviceSelector:
                 netio = netio230a.netio230a(data['host'], data['username'], data['password'], True, data['tcp_port'])
                 netio.enable_logging(open(configuration.LOG_FILE,'w'))
                 devicename = netio.getDeviceAlias()
+                netio.disconnect()
                 netio = None
                 break
             except StandardError, error:
