@@ -214,14 +214,15 @@ class netio230a(object):
     def __watchSocket(self):
         try:
             assert self.__s
-            sock = self.__s
-            inputs = [sock]
-            outputs = [sock]
+            inputs = [self.__s]
+            outputs = [self.__s]
             while True:
                 if ( time.time() - self.__last_request_received ) < WATCH_SOCKET_WAIT:
                     time.sleep(WATCH_SOCKET_WAIT - (time.time()-self.__last_request_received))
                 else:
                     time.sleep(WATCH_WAKE_TIME)
+                if not self.connected():
+                    continue
                 # If a request is pending, no action should be required:
                 if not self.__lock.acquire(False):
                     continue
@@ -229,8 +230,8 @@ class netio230a(object):
                     readable, writable, exceptional = select.select(inputs, outputs, inputs)
                     # If the socket has something to be read (no blocking -
                     # guaranteed) we want to know what strange thing this is:
-                    if sock in readable:
-                        answ = sock.recv(self.__bufsize)
+                    if self.__s in readable:
+                        answ = self.__s.recv(self.__bufsize)
                         if self.__reSearch("^130 CONNECTION TIMEOUT", answ):
                             self.log("The NETIO230A wants to close the connection due to a timeout. We'll respect that.")
                         elif len(answ) == 0 :
@@ -238,6 +239,8 @@ class netio230a(object):
                             break
                         else:
                             raise NameError("The NETIO230A sent a response when we didn't expect any: " + answ)
+                except:
+                    pass
                 finally:
                     self.__lock.release()
 
@@ -404,8 +407,9 @@ class netio230a(object):
 
     def __disconnectAfterLargeNumberOfRequests(self):
         if MAX_NUMBER_OF_REQUESTS_BEFORE_RECONNECT > 0 and (self.number_of_sent_requests+1) % MAX_NUMBER_OF_REQUESTS_BEFORE_RECONNECT == 0:
-            print("%d requests made, reconnecting..." % MAX_NUMBER_OF_REQUESTS_BEFORE_RECONNECT)
             self.number_of_sent_requests += 1
+            if not self.connected(): return
+            print("%d requests made, reconnecting..." % MAX_NUMBER_OF_REQUESTS_BEFORE_RECONNECT)
             self.disconnect()
 
     def __acquireLockWaitForOtherRequestsToFinish(self):
@@ -462,8 +466,16 @@ class netio230a(object):
             if not lock_already_acquired:
                 self.__lock.release()
         return data
-    
+
+    def connected(self):
+        if not self.__s: return False
+        sock = self.__s
+        if sock not in select.select([sock], [sock], [sock])[1]:
+            return False
+        return True
+
     def disconnect(self):
+        if not self.connected(): return
         try:
             self.__watchSocketThread.cancel()
         except:
@@ -486,7 +498,10 @@ class netio230a(object):
             pass
         finally:
             # close the socket (if it is still open):
-            self.__s.close()
+            try:
+                self.__s.close()
+            except:
+                pass
         self.__s = None
 
     def __del__(self):
