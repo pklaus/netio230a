@@ -33,6 +33,11 @@ less important are:
 * ability to change the watchdog settings for each port
 * ability to change the time of the device, the DNS and IP settings, the system name.
 
+Other
+-----
+
+* Investigate whether the fakeserver could be implemented using [twisted](http://twistedmatrix.com).
+
 Allready Implemented
 --------------------
 
