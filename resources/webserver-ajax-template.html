@@ -11,7 +11,7 @@
   <link href='http://fonts.googleapis.com/css?family=Salsa' rel='stylesheet' type='text/css'>
   <!--  Scale the site properly on mobile devices
         see https://developer.mozilla.org/en-US/docs/Mobile/Viewport_meta_tag -->
-  <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0;">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <!--  Now follows our custom CSS -->
   <style type="text/css">
     h1, h2, h3, h4, h5, h6, p, span { font-family: 'Salsa', cursive; color: white;}
@@ -170,6 +170,7 @@
         timeout: 4500,
         success: function(data) {
           $("h1#alias").text(data.device_alias);
+          $("h1#alias").attr('title', "Firmware Version: " + data.version + ", system " + (data.system_discoverable ? "" : "not ") + "discoverable on the network.");
           document.title = data.device_alias;
           $("#powersockets").empty();
           $.each(data.power_sockets, function(i,item){
