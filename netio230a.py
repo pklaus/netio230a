@@ -85,7 +85,7 @@ import errno
 import time
 ### for date.today()
 #from datetime import date
-from datetime import datetime
+from datetime import datetime, timedelta
 
 TELNET_LINE_ENDING = "\r\n"
 TELNET_SOCKET_TIMEOUT = 5
@@ -364,7 +364,18 @@ class netio230a(object):
         date = formatedTimestring.partition(",")[0].split("/")
         time = formatedTimestring.partition(",")[2].split(":")
         return datetime(int(date[0]), int(date[1]), int(date[2]), int(time[0]), int(time[1]), int(time[2]))
-    
+        
+    def getSystemUptime(self):
+        """getSystemUptime() returns a timedelta object"""
+        formatedTimestring = self.__sendRequest('uptime')
+        uptime_regex = r'^(?P<years>\d+) years (?P<days>\d+) days (?P<hours>\d+) hours (?P<min>\d+) min (?P<sec>\d+) sec$'
+        
+        try:
+            g = re.search(uptime_regex, formatedTimestring).groupdict()
+            return timedelta(days=int(g['days']), hours=int(g['hours']), minutes=int(g['min']), seconds=int(g['sec']))
+        except AttributeError:
+            return False
+
     def getSystemTimezone(self):
         """getSystemTimezone() returns the timezone offset from UTC in hours of the NETIO-230A."""
         return float(int(self.__sendRequest("system timezone")))/3600.0
