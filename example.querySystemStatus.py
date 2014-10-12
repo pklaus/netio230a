@@ -53,6 +53,7 @@ def main():
     systemDiscoverable = netio.getSystemDiscoverableUsingTool()
     sntpSettings = netio.getSntpSettings()
     systemTime = netio.getSystemTime()
+    systemUptime = netio.getSystemUptime()
     timezoneOffset = netio.getSystemTimezone()
     
     netio = None
@@ -74,6 +75,7 @@ def main():
     print "DNS server: %s" % (dnsServer)
     print "SNTP settings: %s" % (sntpSettings)
     print "system time: %s" % (systemTime)
+    print "system uptime: %s" % (systemUptime)
     print "timezone offset: %s hours" % (timezoneOffset)
     
     print "---------------------------------------------------------------- \n"
