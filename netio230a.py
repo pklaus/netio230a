@@ -528,7 +528,6 @@ class netio230a(object):
             self.disconnect()
         except:
             pass
-    ###   end of class netio230a   ----------------
 
     def __send(self, data):
         self.log(data, False)
@@ -548,6 +547,7 @@ class netio230a(object):
             raise NameError("The NETIO230A is closing the connection unexpectedly")
         self.log(response, False)
         return response
+    ###   end of class netio230a   ----------------
 
 
 class PowerSocket(object):
