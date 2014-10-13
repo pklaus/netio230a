@@ -104,10 +104,10 @@ class netio230a(object):
     """netio230a is the basic class that you want to instantiate when communicating
     with the Koukaam NETIO 230A. It can handle the raw TCP socket connection and
     helps you send the commands to switch on / off powerSockets etc."""
-    
+
     def __init__(self, host, username, password, secureLogin=False, customTCPPort=23):
         """netio230a constructor: set up an instance of netio230a by giving:
-        
+
             host        the hostname of the NETIO-230A (may be in the form of something.dyndns.org or 192.168.1.2)
             username    the username you want to use to authenticate against the NETIO-230A
             password    the password (that belongs to username)
@@ -127,7 +127,7 @@ class netio230a(object):
         self.__bufsize = 1024
         self.__power_sockets = [ PowerSocket() for i in range(4) ]
         self.__create_socket_and_login()
-    
+
     def __create_socket_and_login(self, lock_already_acquired = False):
         # create a TCP/IP socket
         self.__s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -142,7 +142,7 @@ class netio230a(object):
         self.__watchSocketThread.daemon = True
         self.__watchSocketThread.start()
 
- 
+
     def __login(self, lock_already_acquired = False):
         """Login to the server using the credentials given to the constructor.
            Note that this is a private method called by the constructor
@@ -169,7 +169,7 @@ class netio230a(object):
             raise error
         except Exception, error:
             raise error
-        
+
         # The answer should be in the form     "100 HELLO E675DDA5"
         # where the last eight letters are random hexcode used to hash the password
         if self.__reSearch("^100 HELLO [0-9A-F]{8}"+TELNET_LINE_ENDING+"$", data) == None and \
@@ -258,7 +258,7 @@ class netio230a(object):
         except StandardError, error:
             self.logging = True
             raise error
-    
+
     def log(self, message, line_break=True):
         if self.logging:
             self.log_file.write("%s %s%s" % (datetime.now().isoformat(), message, "\n" if line_break else "") )
@@ -270,53 +270,53 @@ class netio230a(object):
 
     def getPowerSocketList(self):
         """Sends request to the NETIO 230A to ask for the power socket status.
-        
+
         'port list' returns a string (4 chars long) specifying which power sockets are switched on/off.
         Each char is representing the power status of one power socket: 0/1
         We convert them to a list of four boolean values: """
         return [bool(int(status)) for status in self.__sendRequest("port list")]
-    
+
     def getPowerSocketSetup(self,power_socket):
         """Sends request to the NETIO 230A to ask for the setup of the power socket given as parameter.
         returns the "port setup" string as specifyed by Koukaam"""
         return self.__sendRequest("port setup " + str(power_socket+1))
-    
+
     def setPowerSocketPower(self,power_socket,switchOn=False):
         """setPowerSocketPower(power_socket,switchOn=False): method to set the power status of the power socket specified by the argument power_socket to the bool argument switchOn
         returns nothing"""
         # the type conversion of switchOn ensures that the values are either "0" or "1":
         self.__sendRequest("port " + str(power_socket) + " " + str(int(bool(int(switchOn)))) )
-        
+
     def togglePowerSocketPower(self,power_socket):
         """togglePowerSocketPower(power_socket): toggles the power status of power socket specified by the (one based) argument power_socket.
         returns a boolean indicating the new status"""
         previous_state = self.getPowerSocket(power_socket-1).getPowerOn() # the getPowerSocket() function has a zero based argument! therefore -1
         self.setPowerSocketPower(power_socket, not previous_state)
         return not previous_state
-    
+
     def setPowerSocketTempInterrupt(self,power_socket):
         self.__sendRequest("port " + str(int(power_socket)) + " int" )
-    
+
     def setPowerSocketManualMode(self,power_socket,manualMode=True):
         self.__sendRequest("port " + str(int(power_socket)) + " manual")
-    
+
     def getFirmwareVersion(self):
         return self.__sendRequest("version")
-    
+
     def getDeviceAlias(self):
         return self.__sendRequest("alias")
     def setDeviceAlias(self,alias = "netio230a"):
         self.__sendRequest("alias " + alias)
-    
+
     # this command is operation-safe: it does not switch the power sockets on/off during reboot of the NETIO 230A
     def reboot(self):
         response = self.__sendRequest("reboot",False)
         if re.search("^120 Rebooting", response) != None:
             time.sleep(.05) # no reboot if disconnecting too soon
-    
+
     def getWatchdogSettings(self,power_socket):
         return self.__sendRequest("port wd " + str(power_socket))
-    
+
     def getNetworkSettings(self):
         return self.__sendRequest("system eth")
     def setNetworkSettings(self,dhcpMode=False,deviceIP="192.168.1.2",subnetMask="255.255.255.0",gatewayIP="192.168.1.1"):
@@ -324,12 +324,12 @@ class netio230a(object):
             self.__sendRequest("system eth dhcp")
         else:
             self.__sendRequest("system eth manual " + deviceIP + " " + subnetMask + " " + gatewayIP)
-    
+
     def getDnsServer(self):
         return self.__sendRequest("system dns")
     def setDnsServer(self,dnsServer="192.168.1.1"):
         self.__sendRequest("system dns " + dnsServer)
-    
+
     def getSystemDiscoverableUsingTool(self):
         if self.__sendRequest("system discover") == "enable":
             return True
@@ -341,12 +341,12 @@ class netio230a(object):
         else:
             command = "disable"
         self.__sendRequest("system discover " + command)
-    
+
     def setSwitchDelay(self,seconds):
         return self.__sendRequest("system swdelay " + str(int(math.ceil(seconds*10.0))))
     def getSwitchDelay(self):
         return int(self.__sendRequest("system swdelay"))/10.0
-    
+
     def getSntpSettings(self):
         return self.__sendRequest("system sntp")
     def setSntpSettings(self,enable=True,sntpServer="time.nist.gov"):
@@ -355,7 +355,7 @@ class netio230a(object):
         else:
             command = "disable"
         self.__sendRequest("system sntp " + " " + sntpServer)
-    
+
     def setSystemTime(self,dt):
         self.__sendRequest("system time " + dt.strftime("%Y/%m/%d,%H:%M:%S") )
     def getSystemTime(self):
@@ -364,12 +364,12 @@ class netio230a(object):
         date = formatedTimestring.partition(",")[0].split("/")
         time = formatedTimestring.partition(",")[2].split(":")
         return datetime(int(date[0]), int(date[1]), int(date[2]), int(time[0]), int(time[1]), int(time[2]))
-        
+
     def getSystemUptime(self):
         """getSystemUptime() returns a timedelta object"""
         formatedTimestring = self.__sendRequest('uptime')
         uptime_regex = r'^(?P<years>\d+) years (?P<days>\d+) days (?P<hours>\d+) hours (?P<min>\d+) min (?P<sec>\d+) sec$'
-        
+
         try:
             g = re.search(uptime_regex, formatedTimestring).groupdict()
             return timedelta(days=int(g['days']), hours=int(g['hours']), minutes=int(g['min']), seconds=int(g['sec']))
@@ -382,18 +382,18 @@ class netio230a(object):
     def setSystemTimezone(self,hoursOffset):
         """setSystemTimezone(hoursOffset) sets the timezone offset from UTC in hours of the NETIO-230A."""
         self.__sendRequest("system timezone " + str(math.ceil(hoursOffset*3600.0)))
-    
+
     def setPowerSocket(self,number,power_socket):
         self.__power_sockets[number] = power_socket
-    
+
     def getPowerSocket(self,number):
         self.updatePowerSocketsStatus()
         return self.__power_sockets[number]
-    
+
     def getAllPowerSockets(self):
         self.updatePowerSocketsStatus()
         return self.__power_sockets
-    
+
     def updatePowerSocketsStatus(self):
         power_sockets = []
         powerOnStatus = self.getPowerSocketList()
@@ -551,37 +551,37 @@ class PowerSocket(object):
         self.__powerOn = False
         self.__watchdogOn = False
         self.__interruptDelay = 2
-    
+
     def setManualMode(self,manualMode=True):
         self.__manualMode = manualMode
     def getManualMode(self):
         return self.__manualMode
-    
+
     def setPowerOnAfterPowerLoss(self,powerOn=False):
         self.__powerOnAfterPowerLoss = powerOn
     def getPowerOnAfterPowerLoss(self):
         return self.__powerOnAfterPowerLoss
-    
+
     def setTimerMode(self,timerMode):
         self.__manualMode = not timerMode
     def getTimerMode(self):
         return not self.__manualMode
-    
+
     def setPowerOn(self,powerOn = False):
         self.__powerOn = powerOn
     def getPowerOn(self):
         return self.__powerOn
-    
+
     def setName(self,newName):
         self.__name = newName
     def getName(self):
         return self.__name
-    
+
     def setInterruptDelay(self,interruptDelay):
         self.__interruptDelay = interruptDelay
     def getInterruptDelay(self):
         return self.__interruptDelay
-    
+
     def setWatchdogOn(self,watchdogOn):
         self.__watchdogOn = watchdogOn
     def getWatchdogOn(self):
@@ -659,7 +659,7 @@ def discover_netio230a_devices(callback_for_found_devices):
     #dest = ('255.255.255.255',NETIO230A_UDP_DISCOVER_PORT)
     myUDPintsockThread = UDPintsockThread(NETIO230A_UDP_DISCOVER_PORT,callback_for_found_devices)
     myUDPintsockThread.start()
-    
+
     # send on all interfaces of the computer:
     # cf. last lines of the comment <http://serverfault.com/questions/72112/how-to-fix-the-global-broadcast-address-255-255-255-255-behavior-on-windows/72152#72152>
     interfaces = all_interfaces()
@@ -718,4 +718,3 @@ def get_all_detected_devices():
     all_devices = []
     discover_netio230a_devices(device_detected_callback)
     return all_devices
-
