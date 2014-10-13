@@ -305,6 +305,7 @@ class netio230a(object):
 
     def getDeviceAlias(self):
         return self.__sendRequest("alias")
+
     def setDeviceAlias(self,alias = "netio230a"):
         self.__sendRequest("alias " + alias)
 
@@ -319,6 +320,7 @@ class netio230a(object):
 
     def getNetworkSettings(self):
         return self.__sendRequest("system eth")
+
     def setNetworkSettings(self,dhcpMode=False,deviceIP="192.168.1.2",subnetMask="255.255.255.0",gatewayIP="192.168.1.1"):
         if dhcpMode:
             self.__sendRequest("system eth dhcp")
@@ -327,6 +329,7 @@ class netio230a(object):
 
     def getDnsServer(self):
         return self.__sendRequest("system dns")
+
     def setDnsServer(self,dnsServer="192.168.1.1"):
         self.__sendRequest("system dns " + dnsServer)
 
@@ -335,6 +338,7 @@ class netio230a(object):
             return True
         else:
             return False
+
     def setSystemDiscoverableUsingTool(self,setDiscoverable=True):
         if setDiscoverable:
             command = "enable"
@@ -344,11 +348,13 @@ class netio230a(object):
 
     def setSwitchDelay(self,seconds):
         return self.__sendRequest("system swdelay " + str(int(math.ceil(seconds*10.0))))
+
     def getSwitchDelay(self):
         return int(self.__sendRequest("system swdelay"))/10.0
 
     def getSntpSettings(self):
         return self.__sendRequest("system sntp")
+
     def setSntpSettings(self,enable=True,sntpServer="time.nist.gov"):
         if enable:
             command = "enable"
@@ -358,6 +364,7 @@ class netio230a(object):
 
     def setSystemTime(self,dt):
         self.__sendRequest("system time " + dt.strftime("%Y/%m/%d,%H:%M:%S") )
+
     def getSystemTime(self):
         """getSystemTime() returns a datetime object"""
         formatedTimestring = self.__sendRequest("system time")
@@ -379,6 +386,7 @@ class netio230a(object):
     def getSystemTimezone(self):
         """getSystemTimezone() returns the timezone offset from UTC in hours of the NETIO-230A."""
         return float(int(self.__sendRequest("system timezone")))/3600.0
+
     def setSystemTimezone(self,hoursOffset):
         """setSystemTimezone(hoursOffset) sets the timezone offset from UTC in hours of the NETIO-230A."""
         self.__sendRequest("system timezone " + str(math.ceil(hoursOffset*3600.0)))
@@ -712,6 +720,7 @@ all_devices=[]
 def device_detected_callback(device):
     global all_devices
     all_devices.append(device)
+
 # if any software module wants to get all found devices with one call (blocking) then this function can be used:
 def get_all_detected_devices():
     global all_devices
