@@ -45,10 +45,9 @@ def main():
     
     netio = None
     
-    # print response
-    print "\n--------- successfully queried the Koukaam NETIO 230A ---------"
-    print "temporarily interrupted power socket %s" % (interruptPowerSocket)
-    print "--------------------------------------------------------------- \n"
+    print("\n--------- successfully queried the Koukaam NETIO 230A ---------")
+    print("temporarily interrupted power socket %s" % (interruptPowerSocket))
+    print("--------------------------------------------------------------- \n")
     
 
 if __name__ == '__main__':

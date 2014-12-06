@@ -54,11 +54,10 @@ def main():
     
     netio = None
     
-    # print response
-    print "\n--------- successfully queried the Koukaam NETIO 230A ---------"
-    print "system time: %s" % (systemTime)
-    print "system time after update: %s" % (newSystemTime)
-    print "--------------------------------------------------------------- \n"
+    print("\n--------- successfully queried the Koukaam NETIO 230A ---------")
+    print("system time: %s" % (systemTime))
+    print("system time after update: %s" % (newSystemTime))
+    print("--------------------------------------------------------------- \n")
     
 
 if __name__ == '__main__':

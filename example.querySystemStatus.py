@@ -58,27 +58,26 @@ def main():
     
     netio = None
     
-    # print response
-    print "\n--------- successfully queried the Koukaam NETIO 230A ---------"
-    print "power status:  power socket 1: %s, power socket 2: %s, power socket 3: %s, power socket 4: %s" % (power_sockets[0].getPowerOn(),power_sockets[1].getPowerOn(),power_sockets[2].getPowerOn(),power_sockets[3].getPowerOn())
-    print "power on after power loss:  power socket 1: %s, power socket 2: %s, power socket 3: %s, power socket 4: %s" % (power_sockets[0].getPowerOnAfterPowerLoss(),power_sockets[1].getPowerOnAfterPowerLoss(),power_sockets[2].getPowerOnAfterPowerLoss(),power_sockets[3].getPowerOnAfterPowerLoss())
-    print "power socket names:  power socket 1: \"%s\", power socket2: \"%s\", power socket 3: \"%s\", power socket 4: \"%s\"" % (power_sockets[0].getName(),power_sockets[1].getName(),power_sockets[2].getName(),power_sockets[3].getName())
-    print "manual mode:  power socket 1: %s, power socket 2: %s, power socket 3: %s, power socket 4: %s" % (power_sockets[0].getManualMode(),power_sockets[1].getManualMode(),power_sockets[2].getManualMode(),power_sockets[3].getManualMode())
-    print "interrupt delay:  power socket 1: %s seconds, power socket 2: %s seconds, power socket 3: %s seconds, power socket 4: %s seconds" % (power_sockets[0].getInterruptDelay(),power_sockets[1].getInterruptDelay(),power_sockets[2].getInterruptDelay(),power_sockets[3].getInterruptDelay())
-    print "Firmware Version: %s" % (version)
-    print "switch delay: %s seconds" % (swDelay)
-    print "status of power socket 1: %s" % (power_socket_1_status)
-    print "device alias: %s" % (deviceAlias)
-    print "watchdog settings for power socket 1: %s" % (watchdogSettings1)
-    print "network settings: %s" % (networkSettings)
-    print "system discoverable: %s" % (systemDiscoverable)
-    print "DNS server: %s" % (dnsServer)
-    print "SNTP settings: %s" % (sntpSettings)
-    print "system time: %s" % (systemTime)
-    print "system uptime: %s" % (systemUptime)
-    print "timezone offset: %s hours" % (timezoneOffset)
+    print("\n--------- successfully queried the Koukaam NETIO 230A ---------")
+    print("power status:  power socket 1: %s, power socket 2: %s, power socket 3: %s, power socket 4: %s" % (power_sockets[0].getPowerOn(),power_sockets[1].getPowerOn(),power_sockets[2].getPowerOn(),power_sockets[3].getPowerOn()))
+    print("power on after power loss:  power socket 1: %s, power socket 2: %s, power socket 3: %s, power socket 4: %s" % (power_sockets[0].getPowerOnAfterPowerLoss(),power_sockets[1].getPowerOnAfterPowerLoss(),power_sockets[2].getPowerOnAfterPowerLoss(),power_sockets[3].getPowerOnAfterPowerLoss()))
+    print("power socket names:  power socket 1: \"%s\", power socket2: \"%s\", power socket 3: \"%s\", power socket 4: \"%s\"" % (power_sockets[0].getName(),power_sockets[1].getName(),power_sockets[2].getName(),power_sockets[3].getName()))
+    print("manual mode:  power socket 1: %s, power socket 2: %s, power socket 3: %s, power socket 4: %s" % (power_sockets[0].getManualMode(),power_sockets[1].getManualMode(),power_sockets[2].getManualMode(),power_sockets[3].getManualMode()))
+    print("interrupt delay:  power socket 1: %s seconds, power socket 2: %s seconds, power socket 3: %s seconds, power socket 4: %s seconds" % (power_sockets[0].getInterruptDelay(),power_sockets[1].getInterruptDelay(),power_sockets[2].getInterruptDelay(),power_sockets[3].getInterruptDelay()))
+    print("Firmware Version: %s" % (version))
+    print("switch delay: %s seconds" % (swDelay))
+    print("status of power socket 1: %s" % (power_socket_1_status))
+    print("device alias: %s" % (deviceAlias))
+    print("watchdog settings for power socket 1: %s" % (watchdogSettings1))
+    print("network settings: %s" % (networkSettings))
+    print("system discoverable: %s" % (systemDiscoverable))
+    print("DNS server: %s" % (dnsServer))
+    print("SNTP settings: %s" % (sntpSettings))
+    print("system time: %s" % (systemTime))
+    print("system uptime: %s" % (systemUptime))
+    print("timezone offset: %s hours" % (timezoneOffset))
     
-    print "---------------------------------------------------------------- \n"
+    print("---------------------------------------------------------------- \n")
     
 
 if __name__ == '__main__':

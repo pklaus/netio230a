@@ -48,12 +48,11 @@ def main():
     
     netio = None
     
-    # print response
-    print "\n--------- successfully queried the Koukaam NETIO 230A ---------"
-    print "power status before change:  power socket 1: %s, power socket 2: %s, power socket 3: %s, power socket 4: %s" % (power_before[0],power_before[1],power_before[2],power_before[3] )
-    print "set power socket %s to: \"%s\"" % (power_socket_to_change,power_on)
-    print "power status after change:  power socket 1: %s, power socket 2: %s, power socket 3: %s, power socket 4: %s" % (power_after[0],power_after[1],power_after[2],power_after[3] )
-    print "---------------------------------------------------------------- \n"
+    print("\n--------- successfully queried the Koukaam NETIO 230A ---------")
+    print("power status before change:  power socket 1: %s, power socket 2: %s, power socket 3: %s, power socket 4: %s" % (power_before[0],power_before[1],power_before[2],power_before[3] ))
+    print("set power socket %s to: \"%s\"" % (power_socket_to_change,power_on))
+    print("power status after change:  power socket 1: %s, power socket 2: %s, power socket 3: %s, power socket 4: %s" % (power_after[0],power_after[1],power_after[2],power_after[3] ))
+    print("---------------------------------------------------------------- \n")
     
 
 if __name__ == '__main__':
