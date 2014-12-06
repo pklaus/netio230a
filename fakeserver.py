@@ -24,7 +24,7 @@
 # It tries to imitate the behaviour of the original device.
 # The reason this exitsts is mainly the unittest for the netio230a class.
 
-import SocketServer
+import socketserver
 import threading
 import random
 import string
@@ -67,11 +67,11 @@ class InvVError(Exception):
 class InvPError(Exception):
     pass
 
-class FakeNetio230aServerHandler(SocketServer.BaseRequestHandler):
+class FakeNetio230aServerHandler(socketserver.BaseRequestHandler):
 
     def send(self,message):
         self.fakeserver.log(message+N_LINE_ENDING)
-        self.request.send(message+N_LINE_ENDING)
+        self.request.send((message+N_LINE_ENDING).encode('ascii'))
 
     def receive(self):
         return self.request.recv(1024)
@@ -151,6 +151,7 @@ class FakeNetio230aServerHandler(SocketServer.BaseRequestHandler):
     #email server
 
     def process(self,data,already_authenticated = True):
+        data = data.decode('ascii')
         self.fakeserver.log(data+"\n")
         data = data.strip()
         if data == 'quit':
@@ -297,7 +298,7 @@ class FakeNetio230a(object):
     def getOutlets(self):
         return [outlet.power_status for outlet in self.outlets]
 
-class FakeNetio230aServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+class FakeNetio230aServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     def __init__(self, server_address, RequestHandlerClass,logfile_name=""):
         self.device = FakeNetio230a()
         ### Seems like we don't really need this line (at least with Python 2.7 on Mac OS X):
@@ -305,7 +306,7 @@ class FakeNetio230aServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         ## with Python 3 we would use something like:
         #super( FakeNetio230aServer, self ).__init__(server_address, RequestHandlerClass)
         ## instead we have to call the constructor of TCPServer explicitly using Python 2.X
-        SocketServer.TCPServer.__init__(self, server_address, RequestHandlerClass)
+        socketserver.TCPServer.__init__(self, server_address, RequestHandlerClass)
 
         if logfile_name != "":
             self.logfile = open(logfile_name,'a')
@@ -335,17 +336,17 @@ class NetcatClient(object):
         while True:
             try:
                 signal.alarm(CLIENT_POLL_TIME)
-                user_input = raw_input()
-                self.client.send(user_input+CLIENT_LINE_ENDING)
+                user_input = input()
+                self.client.send((user_input+CLIENT_LINE_ENDING).encode('ascii'))
                 signal.alarm(0) # cancel alarm
             except AlarmException:
                 if not self.connected: break
         raise NetcatClientConnectionClosed
     def read(self):
         while True:
-            server_response = self.client.recv(8192)
+            server_response = self.client.recv(8192).decode('ascii')
             if not server_response: break
-            print server_response,
+            print(server_response, end="")
         self.connected = False
 
 # we need to initialize the variable here, because we need the global scope:
@@ -365,7 +366,7 @@ def start_server(tcp_port, start_client, logfile):
             nc = NetcatClient()
             nc.interactive(fake_server_ip, fake_server_port)
         except NetcatClientConnectionClosed:
-            print "The client is now disconnected from the server."
+            print("The client is now disconnected from the server.")
         except KeyboardInterrupt:
             print("  [CTRL]-[C] catched, exiting.")
     else:

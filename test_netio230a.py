@@ -54,11 +54,6 @@ class TestNETIO230A(unittest.TestCase):
         # we need server_close() too because the socket would remain opened otherwise:
         fakeserver.fake_server.server_close() # see <http://stackoverflow.com/questions/5218159>
 
-    def test_for_invalid_server(self):
-        ## Test for exception:
-        self.assertRaises(NameError,netio230a.netio230a,"x 400.1.1.1", "admin", "admin", True, 1234)
-        #netio230a.netio230a("300.1.1.1", "admin", "password", True, 1234)
-
     def test_connect_to_fake_server(self):
         netio = netio230a.netio230a("localhost","admin", "admin", True, self.fake_server_port)
 
@@ -78,11 +73,11 @@ class TestNETIO230A(unittest.TestCase):
         #timezoneOffset = netio.getSystemTimezone()
 
 if __name__ == '__main__':
-    print "\nThis is the unittest for the class netio230a.py.\n"
-    print "You might also consider running a test of the device responses of the\n" + \
-          "NETIO230[A/B] (and the fake server) by using the test tool\n" + \
-          "\"Automated test of the responses of a Koukaam NETIO230[A/B] device\"\n" + \
-          "which can be found on <https://gist.github.com/901959>\n"
+    print("\nThis is the unittest for the class netio230a.py.\n"
+          "You might also consider running a test of the device responses of the\n"
+          "NETIO230[A/B] (and the fake server) by using the test tool\n"
+          "\"Automated test of the responses of a Koukaam NETIO230[A/B] device\"\n"
+          "which can be found on <https://gist.github.com/901959>\n")
     try:
         cProfile.run('unittest.main()')
     except:
