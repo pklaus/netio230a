@@ -52,11 +52,6 @@ except:
     BACKEND = pickle
     CONFIGURATION_FILE = os.path.expanduser("~/.netio230a/connections.pickle")
 
-# PyS60
-if sys.platform == 'symbian_s60':
-    CONFIGURATION_FILE = "C:/Data/netio230a/connections"
-
-
 def changeConfiguration(action, devicename, host, port, username, password):
     try:
         os.makedirs(os.path.split(CONFIGURATION_FILE)[0])

@@ -50,15 +50,6 @@
 #  `--------------------------------------------------------------------------------'
 
 
-#For PyS60 we need this:
-try:
-    import sys
-    # http://discussion.forum.nokia.com/forum/showthread.php?p=575213
-    # Try to import 'btsocket' as 'socket' (just for 1.9.x)
-    if sys.platform == 'symbian_s60':
-        sys.modules['socket'] = __import__('btsocket')
-except ImportError:
-    pass
 # for the raw TCP socket connection:
 import socket
 # For a better handling of socket communication (Is data available? Or the socket closed?):
@@ -131,10 +122,7 @@ class netio230a(object):
     def __create_socket_and_login(self, lock_already_acquired = False):
         # create a TCP/IP socket
         self.__s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try: # btsocket on PyS60 lacks this member function so we have to try it:
-            self.__s.settimeout(TELNET_SOCKET_TIMEOUT)
-        except:
-            pass
+        self.__s.settimeout(TELNET_SOCKET_TIMEOUT)
         self.__login(lock_already_acquired)
         # Create the thread that watches for timeouts of the NETIO230A TCP connection:
         self.__watchSocketThread = threading.Timer(WATCH_SOCKET_WAIT, self.__watchSocket)
