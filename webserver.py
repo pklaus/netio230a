@@ -26,6 +26,7 @@
 #    * bottle
 #    * cherrypy
 #  You can do this via `pip install bottle`  etc.
+
 #  Then you should adjust the `host`, `pw` and `tcp_port`
 #  settings in this file.
 #  When finished, run this file via `./webserver.py`
@@ -37,11 +38,6 @@
 import netio230a
 
 
-host = "192.168.1.2"
-tcp_port = 1234
-username = "admin"
-password = "your choosen password"
-LOG_FILE = "./webserver-log.txt"
 
 
 from bottle import Bottle, run, request, static_file, HTTPError, PluginError
@@ -58,11 +54,12 @@ class Netio230aPlugin(object):
     name = 'netio'
     api = 2
 
-    def __init__(self, host, username='admin', password='admin', tcp_port=23, keyword='netio'):
+    def __init__(self, host, username='admin', password='admin', tcp_port=23, logfile=None, keyword='netio'):
          self.host = host
          self.username = username
          self.password = password
          self.tcp_port = tcp_port
+         self.logfile = logfile
          self.keyword = keyword
 
     def setup(self, app):
@@ -75,9 +72,13 @@ class Netio230aPlugin(object):
                 "conflicting settings (non-unique keyword).")
         try:
             self.netio = netio230a.netio230a(self.host, self.username, self.password, True, self.tcp_port)
-            self.netio.enable_logging(open(LOG_FILE,'w'))
         except Exception as e:
             raise PluginError("Could not connect to the NETIO230A with hostname %s (username: %s). Error: %s" % (self.host, self.username, e) )
+        if self.logfile:
+            try:
+                self.netio.enable_logging(open(self.logfile,'w'))
+            except:
+                raise PluginError("Could not enable logging to this log file: " + str(self.logfile))
 
     def apply(self, callback, context):
         keyword = self.keyword
@@ -109,8 +110,6 @@ class Netio230aPlugin(object):
         self.netio = None
 
 api = Bottle()
-netio_plugin = Netio230aPlugin(host, username, password, tcp_port)
-api.install(netio_plugin)
 
 @api.post('/port')
 def port(netio):
@@ -155,10 +154,41 @@ def static(path):
 def index():
     return static('webserver-ajax-template.html')
 
-## Run with cherrypy server via IPv4:
-#run( root, server='cherrypy', host="0.0.0.0", port=8080)
-## Run with cherrypy server via IPv6:
-run( root, server='cherrypy', host="::", port=8080)
 
-## Run with bottle's standard server (IPv4):
-#run( root, host="localhost", port=8080)
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(
+      description='Start a server to store location information.' )
+    parser.add_argument('netio230a_host', metavar="NETIO230A_HOST",
+      help='The IP of your NETIO-230A.')
+    parser.add_argument('--port', '-p', type=int, default=8080,
+      help='The port to run the web server on.')
+    parser.add_argument('--ipv6', '-6', action='store_true',
+      help='Listen to incoming connections via IPv6 instead of IPv4.')
+    parser.add_argument('--debug', '-d', action='store_true',
+      help='Start in debug mode (with verbose HTTP error pages.')
+    parser.add_argument('--netio230a-port', type=int, default=1234,
+      help='The username of your NETIO-230A.')
+    parser.add_argument('--netio230a-username', default="admin",
+      help='The username of your NETIO-230A.')
+    parser.add_argument('--netio230a-password', default="admin",
+      help='The password of your NETIO-230A.')
+    parser.add_argument('--logfile', '-l', default="./webserver-log.txt",
+      help='The file to store the server log in.')
+    args = parser.parse_args()
+    if args.debug and args.ipv6:
+        args.error('You cannot use IPv6 in debug mode, sorry.')
+
+    netio_plugin = Netio230aPlugin(args.netio230a_host, args.netio230a_username, args.netio230a_password, args.netio230a_port, logfile=args.logfile)
+    api.install(netio_plugin)
+
+    if args.debug:
+        run(root, host='0.0.0.0', port=args.port, debug=True, reloader=True)
+    else:
+        if args.ipv6:
+            run(root, host='::', server='cherrypy', port=args.port)
+        else:
+            run(root, host='0.0.0.0', server='cherrypy', port=args.port)
+
+if __name__ == "__main__":
+    main()
