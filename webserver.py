@@ -76,7 +76,7 @@ class Netio230aPlugin(object):
         try:
             self.netio = netio230a.netio230a(self.host, self.username, self.password, True, self.tcp_port)
             self.netio.enable_logging(open(LOG_FILE,'w'))
-        except Exception, e:
+        except Exception as e:
             raise PluginError("Could not connect to the NETIO230A with hostname %s (username: %s). Error: %s" % (self.host, self.username, e) )
 
     def apply(self, callback, context):
@@ -94,7 +94,7 @@ class Netio230aPlugin(object):
 
             try:
                 rv = callback(*args, **kwargs)
-            except NameError, e:
+            except NameError as e:
                 raise HTTPError(503, "NETIO230A not available: " + str(e) )
             finally:
                 #netio.disconnect()

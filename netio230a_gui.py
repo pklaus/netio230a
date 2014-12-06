@@ -100,9 +100,9 @@ class DeviceController:
         try:
             self.netio = netio230a.netio230a(self.__host, self.__username, self.__pw, True, self.__tcp_port)
             self.netio.enable_logging(open(configuration.LOG_FILE,'w'))
-        except StandardError, error:
+        except StandardError as error:
             print(str(error))
-        except Exception, e:
+        except Exception as e:
             print(str(e))
         
         self.builder = gtk.Builder()
@@ -130,7 +130,7 @@ class DeviceController:
             if self.counter%AUTO_UPDATE == 0:
                 try:
                     self.updatePowerSocketStatus()
-                except StandardError, error:
+                except StandardError as error:
                     pass
                     debug("The updatePowerSocketStatus action triggered by the timer failed: " + str(error), DBG_WARNING)
                 self.counter = 0
@@ -180,7 +180,7 @@ class DeviceController:
     def updatePowerSocketStatus(self):
         try:
             power_sockets = self.netio.getAllPowerSockets()
-        except StandardError, error:
+        except StandardError as error:
             print(str(error))
             return
         if not self.__persistent_connection:
@@ -208,7 +208,7 @@ class DeviceController:
     def updateLabels(self):
         try:
             power_sockets = self.netio.getAllPowerSockets()
-        except StandardError, error:
+        except StandardError as error:
             print(str(error))
             return
         if not self.__persistent_connection:
@@ -226,7 +226,7 @@ class DeviceController:
             systemTime = self.netio.getSystemTime().isoformat(" ")
             timezoneOffset = self.netio.getSystemTimezone()
             sntpSettings = self.netio.getSntpSettings()
-        except StandardError, error:
+        except StandardError as error:
             print(str(error))
             return
         if not self.__persistent_connection:
@@ -253,7 +253,7 @@ class DeviceController:
     def __setPowerSocket(self,socket_nr,socket_power=True):
         try:
             self.netio.setPowerSocketPower(socket_nr,socket_power)
-        except StandardError, error:
+        except StandardError as error:
             print(str(error))
         if not self.__persistent_connection:
             self.netio.disconnect()
@@ -479,7 +479,7 @@ class DeviceSelector:
                 netio.disconnect()
                 netio = None
                 break
-            except StandardError, error:
+            except StandardError as error:
                 print(str(error))
                 netio = None
                 continue_abort = gtk.MessageDialog(parent=self.dl.dialog, flags=gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT, type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_OK_CANCEL, message_format="Connection failed. \n\n"+str(error)+"\n\nChange connection details and try again?")

@@ -152,7 +152,7 @@ class netio230a(object):
             self.__s.connect((self.__host, self.__tcp_port))
             # wait for the answer
             data = self.__receive( MAX_SECONDS_WAIT_FOR_RECEIVE_HELLO )
-        except StandardError, error:
+        except Exception as error:
             if type(error) == socket.timeout:
                 raise NameError("Timeout while connecting to " + self.__host)
                 #print("There was a timeout")
@@ -167,7 +167,7 @@ class netio230a(object):
                     raise NameError("The connection was reset by the device. This is usually the case when you still have another network socket connected to the device. It may also be the case when the telnet server on the device crashed. In this case reboot the device (if possible & sensible).")
             # in any other case just hand on the risen error:
             raise error
-        except Exception, error:
+        except Exception as error:
             raise error
 
         # The answer should be in the form     "100 HELLO E675DDA5"
@@ -193,7 +193,7 @@ class netio230a(object):
         try:
             # send login string and wait for the answer
             response = self.__sendRequest(loginString, True, lock_already_acquired)
-        except NameError, error:
+        except NameError as error:
             self.disconnect()
             try:
                 problem = str(error).partition('\n\n')[2]
@@ -207,7 +207,7 @@ class netio230a(object):
                 raise NameError("You are already logged in. Something strange happened.")
             else:
                 raise NameError("Error while connecting: Login failed; " + str(error).partition('\n\n')[2])
-        except StandardError, error:
+        except Exception as error:
             self.disconnect()
             raise NameError("Error while connecting: Login failed; " + str(error))
 
@@ -255,7 +255,7 @@ class netio230a(object):
         self.log_file = log_file
         try:
             self.log("Logging started on %s." % datetime.now().isoformat())
-        except StandardError, error:
+        except Exception as error:
             self.logging = True
             raise error
 
@@ -464,12 +464,12 @@ class netio230a(object):
             starting_time = time.time()
             try:
                 self.__send(request.encode("ascii")+TELNET_LINE_ENDING.encode("ascii"))
-            except Exception, error:
+            except Exception as error:
                 self.log("could not send the command: "+str(error))
                 raise NameError("Sending the command '%s' produced this error: %s." % (request, error))
             try:
                 data = self.__receive()
-            except Exception, error:
+            except Exception as error:
                 # maybe we should try to reconnect here too before giving up.
                 self.log("trying to receive data failed: "+str(error))
                 raise NameError("trying to receive data failed: "+str(error))
@@ -503,7 +503,7 @@ class netio230a(object):
             # send the quit command to the box (if we have an open connection):
             self.__send("quit".encode("ascii")+TELNET_LINE_ENDING.encode("ascii"))
             self.__receive()  # should give  110 BYE
-        except Exception, error:
+        except Exception as error:
             raise error
         finally:
             self.__shutdownSocket()

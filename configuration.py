@@ -60,13 +60,13 @@ if sys.platform == 'symbian_s60':
 def changeConfiguration(action, devicename, host, port, username, password):
     try:
         os.makedirs(os.path.split(CONFIGURATION_FILE)[0])
-    except StandardError, error:
+    except StandardError as error:
         pass
         
     try:
         # try to get stored configuration (if it exists)
         configuration = getConfiguration()
-    except StandardError, error:
+    except StandardError as error:
         # or create an empty list for the new configuration
         configuration = []
     try:
@@ -92,7 +92,7 @@ def changeConfiguration(action, devicename, host, port, username, password):
         store(configuration,outfile)
         outfile.close()
         return True
-    except StandardError, error:
+    except StandardError as error:
         print str(error)
         return False
 
@@ -111,7 +111,7 @@ def getConfiguration():
         configuration = retrieve(infile)
         infile.close()
         return configuration
-    except StandardError, error:
+    except StandardError as error:
         return []
 
 if __name__ == "__main__":

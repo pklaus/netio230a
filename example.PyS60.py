@@ -84,7 +84,7 @@ class DeviceController(object):
         
         try:
             self.netio = netio230a.netio230a(host, username, password, True, tcp_port)
-        except Exception, error:
+        except Exception as error:
             self.netio=None
             self.controller.displayUnrecoverableError(u"Connection failed:\n"+str(error))
             return
@@ -310,7 +310,7 @@ class Controller:
     def exit_key_handler(self):
         try:
             self.apo.stop()
-        except Exception, error:
+        except Exception as error:
             print "could not stop access point: " + str(error)
         self.app_lock.signal()
 
