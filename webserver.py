@@ -145,7 +145,7 @@ def system_status(netio):
     return status
 
 root = Bottle()
-root.mount(api, '/api')
+root.mount('/api', api)
 
 @root.route('/static/<path:path>')
 def static(path):
