@@ -55,10 +55,10 @@ class TestNETIO230A(unittest.TestCase):
         fakeserver.fake_server.server_close() # see <http://stackoverflow.com/questions/5218159>
 
     def test_connect_to_fake_server(self):
-        netio = netio230a.netio230a("localhost","admin", "admin", True, self.fake_server_port)
+        netio = netio230a.netio230a("localhost", "admin", "admin", True, self.fake_server_port)
 
     def test_valid_requests(self):
-        netio = netio230a.netio230a("localhost","admin", "admin", True, self.fake_server_port)
+        netio = netio230a.netio230a("localhost", "admin", "admin", True, self.fake_server_port)
         version = netio.getFirmwareVersion()
         swDelay = netio.getSwitchDelay()
         power_sockets = netio.getAllPowerSockets()

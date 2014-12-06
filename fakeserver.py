@@ -32,10 +32,7 @@ import hashlib
 import re
 import datetime
 
-# For sys.exit():
 import sys
-
-#import pdb ## use with pdb.set_trace()
 
 # Koukaam Netio230A Behaviour:
 N_WELCOME = "100 HELLO %X - KSHELL V1.2" # welcome message
