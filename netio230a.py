@@ -406,7 +406,7 @@ class netio230a(object):
         power_sockets = []
         powerOnStatus = self.getPowerSocketList()
         for i in range(4):
-            status_splitter = shlex.shlex(self.getPowerSocketSetup(i).encode('ascii'), posix=True)
+            status_splitter = shlex.shlex(self.getPowerSocketSetup(i), posix=True)
             status_splitter.whitespace_split = True
             power_sockets.append( list(status_splitter) )
             self.__power_sockets[i].setName(power_sockets[i][0])
