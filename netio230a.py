@@ -161,9 +161,7 @@ class netio230a(object):
         # The answer should be in the form     "100 HELLO E675DDA5"
         # where the last eight letters are random hexcode used to hash the password
         if self.__reSearch("^100 HELLO [0-9A-F]{8}"+TELNET_LINE_ENDING+"$", data) == None and \
-           self.__reSearch("^100 HELLO [0-9A-F]{8} - KSHELL V1.1"+TELNET_LINE_ENDING+"$", data) == None and \
-           self.__reSearch("^100 HELLO [0-9A-F]{8} - KSHELL V1.2"+TELNET_LINE_ENDING+"$", data) == None and \
-           self.__reSearch("^100 HELLO [0-9A-F]{8} - KSHELL V1.3"+TELNET_LINE_ENDING+"$", data) == None :
+           self.__reSearch("^100 HELLO [0-9A-F]{8} - KSHELL V1.."+TELNET_LINE_ENDING+"$", data) == None :
             raise NameError("Error while connecting: Not received a \"100 HELLO ... signal from the remote device. Maybe not a NET-IO 230A?")
         if self.__secureLogin:
             hash=str(data).split(" ")[2]
