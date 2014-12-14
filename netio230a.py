@@ -594,11 +594,11 @@ import sys
 
 NETIO230A_UDP_DISCOVER_PORT = 4000
 DETECTION_TIMEOUT=0.2 # should be enough. Usualy we get the answer in 4.6 ms
-DEVICE_NAME_TERMINATION = "\x00\x30\x30\x38\x30"
+DEVICE_NAME_TERMINATION = b"\x00\x30\x30\x38\x30"
 # the request to ask for available NETIO-230A on the network (bytes sniffed using wireshark)
-DISCOVER_REQUEST = "PCEdit\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00"
-DISCOVER_REQUEST += "\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-DISCOVER_REQUEST += "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+DISCOVER_REQUEST = b"PCEdit\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00" + \
+                   b"\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" + \
+                   b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
 
 
 # thread to run the UDP server that listens to answering NETIOs on your network
@@ -627,9 +627,9 @@ class UDPintsockThread(threading.Thread):
                 #print "server timeout"
                 break
             # check if we found a NETIO-230A
-            if data.find("IPCam") == 0 and len(data)== 61:
+            if data.find(b"IPCam") == 0 and len(data)== 61:
                 # documentation of data is found on http://wiki.github.com/pklaus/netio230a/netdiscover-protocol
-                deviceName = data[38:data.find(DEVICE_NAME_TERMINATION)]
+                deviceName = data[38:data.find(DEVICE_NAME_TERMINATION)].decode('ascii')
                 data = array.array('B', data)
                 ip = []
                 for n in range(0, 4):
@@ -683,21 +683,21 @@ import struct
 import array
 def all_interfaces():
     max_possible = 128  # arbitrary. raise if needed.
-    bytes = max_possible * 32
+    num_bytes = max_possible * 32
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    names = array.array('B', '\0' * bytes)
+    names = array.array('B', b'\0' * num_bytes)
     try:
         outbytes = struct.unpack('iL', fcntl.ioctl(
             s.fileno(),
             0x8912,  # SIOCGIFCONF
-            struct.pack('iL', bytes, names.buffer_info()[0])
+            struct.pack('iL', num_bytes, names.buffer_info()[0])
         ))[0]
     except:
         return []
     namestr = names.tostring()
     lst = []
     for i in range(0, outbytes, 40):
-        name = namestr[i:i+16].split('\0', 1)[0]
+        name = namestr[i:i+16].split(b'\0', 1)[0]
         ip   = namestr[i+20:i+24]
         lst.append((name, ip))
     return lst
