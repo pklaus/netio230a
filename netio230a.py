@@ -663,12 +663,6 @@ def discover_netio230a_devices(callback_for_found_devices):
         UDPoutsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # to allow broadcast communication:
         UDPoutsock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        #if interface[1]=='':
-        #    host = ""
-        #else:
-        #    host = socket.inet_ntoa(interface[1])
-        #UDPoutsock.bind((host, 0))
-        # or using the ternary operator:
         UDPoutsock.bind(("" if interface[1]=='' else socket.inet_ntoa(interface[1]), 0))
         # send UDP broadcast:
         UDPoutsock.sendto(DISCOVER_REQUEST, dest)
