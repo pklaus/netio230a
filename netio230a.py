@@ -660,12 +660,16 @@ def discover_netio230a_devices(callback_for_found_devices):
     # but in case we could not enumerate all interfaces we still want one try:
     if len(interfaces) == 0: interfaces = [['','']]
     for interface in interfaces:
-        UDPoutsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        # to allow broadcast communication:
-        UDPoutsock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        UDPoutsock.bind(("" if interface[1]=='' else socket.inet_ntoa(interface[1]), 0))
-        # send UDP broadcast:
-        UDPoutsock.sendto(DISCOVER_REQUEST, dest)
+        try:
+            UDPoutsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            # to allow broadcast communication:
+            UDPoutsock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            UDPoutsock.bind(("" if interface[1]=='' else socket.inet_ntoa(interface[1]), 0))
+            # send UDP broadcast:
+            UDPoutsock.sendto(DISCOVER_REQUEST, dest)
+            print("Trying on interface %s" % interface)
+        except:
+            print("Could not check on interface %s" % interface)
     myUDPintsockThread.join()
 
 ## http://code.activestate.com/recipes/439093/#c1
