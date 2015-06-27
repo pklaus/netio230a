@@ -26,3 +26,6 @@
 # what to import when importing * from this package:
 __all__ = ["netio230a",]
 
+from .netio230a import netio230a, discover_netio230a_devices, get_all_detected_devices
+from .fakeserver import start_fakeserver, FakeNetio230aServer, FakeNetio230aServerHandler
+

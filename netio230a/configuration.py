@@ -88,7 +88,7 @@ def changeConfiguration(action, devicename, host, port, username, password):
         outfile.close()
         return True
     except StandardError as error:
-        print str(error)
+        print(str(error))
         return False
 
 

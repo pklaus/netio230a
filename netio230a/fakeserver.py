@@ -31,8 +31,11 @@ import string
 import hashlib
 import re
 import datetime
-
 import sys
+
+
+# we need to initialize the variable here, because we need the global scope:
+fake_server = None
 
 # Koukaam Netio230A Behaviour:
 N_WELCOME = "100 HELLO %X - KSHELL V1.2" # welcome message
@@ -74,6 +77,7 @@ class FakeNetio230aServerHandler(socketserver.BaseRequestHandler):
         return self.request.recv(1024)
 
     def handle(self):
+        global fake_server
         self.fakeserver = fake_server
         device = fake_server.device
         # First, we have to send the welcome message (including the salt for the md5 password hash):
@@ -295,8 +299,15 @@ class FakeNetio230a(object):
     def getOutlets(self):
         return [outlet.power_status for outlet in self.outlets]
 
+
 class FakeNetio230aServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+
     def __init__(self, server_address, RequestHandlerClass,logfile_name=""):
+
+        global fake_server
+        #if fake_server is not None: raise NameError("Can only start a single instance of the FakeServer")
+        fake_server = self
+
         self.device = FakeNetio230a()
         ### Seems like we don't really need this line (at least with Python 2.7 on Mac OS X):
         self.allow_reuse_address = True
@@ -308,6 +319,7 @@ class FakeNetio230aServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
         if logfile_name != "":
             self.logfile = open(logfile_name,'a')
             self.logging = True
+
     def log(self,message):
         if self.logging: self.logfile.write(message)
 
@@ -346,12 +358,9 @@ class NetcatClient(object):
             print(server_response, end="")
         self.connected = False
 
-# we need to initialize the variable here, because we need the global scope:
-fake_server = None
-
-def start_server(tcp_port, start_client, logfile):
+def start_fakeserver(tcp_port, start_client, logfile):
     global fake_server
-    fake_server = FakeNetio230aServer(("", tcp_port), FakeNetio230aServerHandler,logfile)
+    FakeNetio230aServer(("", tcp_port), FakeNetio230aServerHandler,logfile)
     fake_server_ip, fake_server_port = fake_server.server_address
     print("Fake Netio230A server reachable on 'localhost' on port %i" % fake_server_port)
     if start_client:
@@ -374,10 +383,3 @@ def start_server(tcp_port, start_client, logfile):
             sys.exit(1)
     sys.exit(0)
 
-if __name__ == '__main__':
-    # we want to be able to use arguments for the tool:
-    tcp_port = 0 # 0 for a random free port / any other port for a manual choice
-    start_client = True # start the interactive client
-    logfile = "fakeserver-logfile.txt" # setup a logfile to write to
-    # sys.exit('Usage: %s [tcp_port [-c]]\ntcp_port  is the port you want the fake server to listen to\n-c  is a switch to start a client with the server.' % sys.argv[0])
-    start_server(tcp_port, start_client, logfile)

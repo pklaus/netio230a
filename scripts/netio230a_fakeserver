@@ -1,0 +1,35 @@
+#!/usr/bin/env python
+# -*- encoding: UTF8 -*-
+
+# Author: Philipp Klaus, philipp.l.klaus AT web.de
+
+
+#   This file is part of netio230a.
+#
+#   netio230a is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   netio230a is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with netio230a.  If not, see <http://www.gnu.org/licenses/>.
+
+
+# This is a fake Koukaam NETIO230A telnet server.
+# It tries to imitate the behaviour of the original device.
+# The reason this exitsts is mainly the unittest for the netio230a class.
+
+from netio230a import start_fakeserver
+
+if __name__ == '__main__':
+    # we want to be able to use arguments for the tool:
+    tcp_port = 0 # 0 for a random free port / any other port for a manual choice
+    start_client = True # start the interactive client
+    logfile = "fakeserver-logfile.txt" # setup a logfile to write to
+    # sys.exit('Usage: %s [tcp_port [-c]]\ntcp_port  is the port you want the fake server to listen to\n-c  is a switch to start a client with the server.' % sys.argv[0])
+    start_fakeserver(tcp_port, start_client, logfile)

@@ -28,7 +28,7 @@ import netio230a
 
 # To simulate the NETIO230A device:
 import threading
-import fakeserver
+from netio230a import FakeNetio230aServer, FakeNetio230aServerHandler
 
 DEBUG = False
 if DEBUG:
@@ -39,20 +39,24 @@ class TestNETIO230A(unittest.TestCase):
 
     def setUp(self):
         """  setUp() gets executed before every test_SOMETHING() test in this class.  """
-        fakeserver.fake_server = fakeserver.FakeNetio230aServer(("", 0), fakeserver.FakeNetio230aServerHandler,"test_netio230a.fakeserver.log")
-        self.fake_server_ip, self.fake_server_port = fakeserver.fake_server.server_address
+        fake_server = FakeNetio230aServer(("", 0), FakeNetio230aServerHandler,"test_netio230a.fakeserver.log")
+        self.fake_server = fake_server
+        self.fake_server_ip, self.fake_server_port = fake_server.server_address
         # Start a thread with the server -- that thread will then start one more thread for each request
         # (but we want to listen for shutdown requests every millisecond)
-        self.server_thread = threading.Thread(target=fakeserver.fake_server.serve_forever,args=(0.001,))
+        self.server_thread = threading.Thread(target=fake_server.serve_forever,args=(0.001,))
         # Exit the server thread when the main thread terminates
-        self.server_thread.daemon = True
+        #self.server_thread.daemon = True
         self.server_thread.start()
 
     def tearDown(self):
         """  tearDown() gets executed after every test_SOMETHING() test in this class.  """
-        fakeserver.fake_server.shutdown()
+        self.fake_server.shutdown()
         # we need server_close() too because the socket would remain opened otherwise:
-        fakeserver.fake_server.server_close() # see <http://stackoverflow.com/questions/5218159>
+        # see <http://stackoverflow.com/questions/5218159>
+        self.fake_server.server_close()
+        self.server_thread.join()
+        del self.server_thread
 
     def test_connect_to_fake_server(self):
         netio = netio230a.netio230a("localhost", "admin", "admin", True, self.fake_server_port)
