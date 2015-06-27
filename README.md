@@ -3,28 +3,24 @@
 ## Project Information
 
 This software (netio230a) provides an interface via TCP to control the Koukaam
-NETIO 230A. The software consists of a class to represent the possibilities of
-the product and example code to show how to use it. It also provides a command
-line tool to switch on and off ports on the NETIO-230A.  
-The latest changes also make it work for the Koukaam NETIO-230B.
-
-If you have an idea for the software or want to report a bug, let me know via
-email!
+NETIO 230A. The software consists of a package to make the device accessible
+in Python. It also comes with a command line tool.
+The software should also work for the Koukaam NETIO-230B.
 
 ## Required Python modules
 
 This project uses the standard python modules socket, hashlib, re, math, time,
-datetime, shlex and sys. The gui (netio230a_gui.py) needs pygtk installed.
+datetime, shlex and sys.
 
 ## Installation and Usage
 
 The software is tested and known to work on Ubuntu Linux (since 9.04 Jaunty) and
 on Microsoft Windows XP. It should, however, work on any operating system that
-supports python (and PyGTK for the GUI).
+supports Python.
 
-Please refer to the Wiki site
-<http://wiki.github.com/pklaus/netio230a/installation-howto> for information on
-how to install and use the software.
+You can install it with
+
+    pip install --upgrade https://github.com/pklaus/netio230a/archive/master.zip
 
 For Ubuntu and Debian there are ready to use .deb installation packages. Please
 refer to [the wiki page on the .deb
