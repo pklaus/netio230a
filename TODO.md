@@ -12,27 +12,6 @@ Class
   (the latter is preferred).
 * type safety (?!)
 
-GUI
----
-
-* show an error message when almost all requests fail
-  (depending on the reason why they fail...). This may be:
-  "The NETIO-230A seems to be unavailable at the moment. Disconnecting."
-* more threading (when changing from one tab to another, we want to do see
-  status updates - YES. But first change to that tab and then do the update.)
-* save information in a configuration file:
-  * remember program status (activated tab etc.)
-* preferences dialog:
-  * automatic status updates (en-/disable, change frequency)
-  * en-/disable logging
-* ability to change the names of the ports via the user interface
-* switch on a power socket for a configurable amount of time
-
-less important are:
-
-* ability to change the watchdog settings for each port
-* ability to change the time of the device, the DNS and IP settings, the system name.
-
 Other
 -----
 
