@@ -234,7 +234,7 @@ class netio230a(object):
             self.__shutdownSocket()
 
     def __reSearch(self, regexp, data):
-        return re.search(regexp.encode("ascii"), data)
+        return re.search(regexp, data)
 
     def enable_logging(self, log_file):
         self.logging = True
@@ -462,7 +462,6 @@ class netio230a(object):
             if self.__reSearch("^250 ", data) == None and complainIfAnswerNot250:
                 raise NameError("Error while sending request: " + request + "\nresponse from NET-IO 230A is:  " + data.replace(TELNET_LINE_ENDING,''))
             else:
-                data = data.decode("ascii")
                 data = data.replace("250 ","").replace(TELNET_LINE_ENDING,"")
                 self.mean_request_time = ( self.number_of_sent_requests*self.mean_request_time + (time.time()-starting_time) ) / (self.number_of_sent_requests + 1)
                 self.number_of_sent_requests += 1
@@ -532,6 +531,8 @@ class netio230a(object):
             self.__shutdownSocket()
             raise NameError("The NETIO230A is closing the connection unexpectedly")
         self.log(response, False)
+        if type(response) == bytes:
+            response = response.decode('ascii')
         return response
     ###   end of class netio230a   ----------------
 
